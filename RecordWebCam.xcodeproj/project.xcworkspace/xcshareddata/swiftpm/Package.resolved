@@ -1,0 +1,15 @@
+{
+  "originHash" : "7ca243407a3b132834ec3b117a3aea85a8f743151ef868a872c8bbf8082921f6",
+  "pins" : [
+    {
+      "identity" : "webrtc",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/stasel/WebRTC.git",
+      "state" : {
+        "revision" : "e15b6945119ac4702b2ff6f770823341e1366ec8",
+        "version" : "135.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}
