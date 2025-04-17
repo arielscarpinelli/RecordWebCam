@@ -12,7 +12,7 @@ import WebRTC
 import VideoToolbox
 
 
-class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelegate {
+class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDelegate
     
     private var spinner: UIActivityIndicatorView!
     
@@ -146,11 +146,7 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
     }
     
     override var shouldAutorotate: Bool {
-        // Disable autorotation of the interface when recording is in progress.
-        if let movieFileOutput = movieFileOutput {
-            return !movieFileOutput.isRecording
-        }
-        return true
+        return !isRecording
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
@@ -203,6 +199,8 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
         
         if session.canSetSessionPreset(.hd4K3840x2160) == true {
             session.sessionPreset = .hd4K3840x2160
+        } else {
+            session.sessionPreset = .high
         }
         
         // Add video input.
@@ -294,20 +292,21 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
         }
 
         // Output
-        let movieFileOutput = AVCaptureMovieFileOutput()
+        // let movieFileOutput = AVCaptureMovieFileOutput()
         
-//        videoOutput = AVCaptureVideoDataOutput()
-//        videoOutput?.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
-//        videoOutput?.alwaysDiscardsLateVideoFrames = true
-//        
-//        let videoQueue = DispatchQueue(label: "videoQueue")
-//        videoOutput?.setSampleBufferDelegate(self, queue: videoQueue)
+        let videoOutput = AVCaptureVideoDataOutput()
+
+        // videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
+        videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]
+//        videoOutput.alwaysDiscardsLateVideoFrames = true
+        
+        let videoQueue = DispatchQueue(label: "videoQueue")
+        videoOutput.setSampleBufferDelegate(self, queue: videoQueue)
 
         
-        if self.session.canAddOutput(movieFileOutput) {
+        if self.session.canAddOutput(videoOutput) {
             self.session.beginConfiguration()
-            self.session.addOutput(movieFileOutput)
-            self.session.sessionPreset = .high
+            self.session.addOutput(videoOutput)
             
             self.selectedMovieMode10BitDeviceFormat = self.tenBitVariantOfFormat(activeFormat: self.videoDeviceInput.device.activeFormat)
             
@@ -329,15 +328,17 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
                 }
             }
             
-            if let connection = movieFileOutput.connection(with: .video) {
+            if let connection = videoOutput.connection(with: .video) {
                 if connection.isVideoStabilizationSupported {
                     connection.preferredVideoStabilizationMode = .auto
                 }
             }
             self.session.commitConfiguration()
             
-            self.movieFileOutput = movieFileOutput
+            self.videoOutput = videoOutput
             
+            setupVideoToolboxEncoder()
+
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
             }
@@ -430,9 +431,13 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
                     } else {
                         self.session.addInput(self.videoDeviceInput)
                     }
-                    if let connection = self.movieFileOutput?.connection(with: .video) {
-                        self.session.sessionPreset = .high
-                        
+                    if let connection = self.videoOutput?.connection(with: .video) {
+                        if self.session.canSetSessionPreset(.hd4K3840x2160) == true {
+                            self.session.sessionPreset = .hd4K3840x2160
+                        } else {
+                            self.session.sessionPreset = .high
+                        }
+
                         self.selectedMovieMode10BitDeviceFormat = self.tenBitVariantOfFormat(activeFormat: self.videoDeviceInput.device.activeFormat)
                         
                         if self.selectedMovieMode10BitDeviceFormat != nil {
@@ -465,7 +470,7 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
             
             DispatchQueue.main.async {
                 self.cameraButton.isEnabled = true
-                self.recordButton.isEnabled = self.movieFileOutput != nil
+                self.recordButton.isEnabled = self.videoOutput != nil
             }
         }
     }
@@ -586,130 +591,11 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
     
     // MARK: Recording Movies
     
-    private var movieFileOutput: AVCaptureMovieFileOutput?
-    
     private var backgroundRecordingID: UIBackgroundTaskIdentifier?
     
     @IBOutlet private weak var recordButton: UIButton!
     
     @IBOutlet private weak var resumeButton: UIButton!
-    
-    @IBAction private func toggleMovieRecording(_ recordButton: UIButton) {
-        guard let movieFileOutput = self.movieFileOutput else {
-            return
-        }
-        
-        /*
-         Disable the Camera button until recording finishes, and disable
-         the Record button until recording starts or finishes.
-         
-         See the AVCaptureFileOutputRecordingDelegate methods.
-         */
-        cameraButton.isEnabled = false
-        recordButton.isEnabled = false
-        
-        let videoPreviewLayerOrientation = previewView.videoPreviewLayer.connection?.videoOrientation
-        
-        sessionQueue.async {
-            if !movieFileOutput.isRecording {
-                if UIDevice.current.isMultitaskingSupported {
-                    self.backgroundRecordingID = UIApplication.shared.beginBackgroundTask(expirationHandler: nil)
-                }
-                
-                // Update the orientation on the movie file output video connection before recording.
-                let movieFileOutputConnection = movieFileOutput.connection(with: .video)
-                movieFileOutputConnection?.videoOrientation = videoPreviewLayerOrientation!
-                
-                let availableVideoCodecTypes = movieFileOutput.availableVideoCodecTypes
-                
-                if availableVideoCodecTypes.contains(.hevc) {
-                    movieFileOutput.setOutputSettings([AVVideoCodecKey: AVVideoCodecType.hevc], for: movieFileOutputConnection!)
-                }
-                
-                // Start recording video to a temporary file.
-                let outputFileName = NSUUID().uuidString
-                let outputFilePath = (NSTemporaryDirectory() as NSString).appendingPathComponent((outputFileName as NSString).appendingPathExtension("mov")!)
-                movieFileOutput.startRecording(to: URL(fileURLWithPath: outputFilePath), recordingDelegate: self)
-            } else {
-                movieFileOutput.stopRecording()
-            }
-        }
-    }
-    
-    /// - Tag: DidStartRecording
-    func fileOutput(_ output: AVCaptureFileOutput, didStartRecordingTo fileURL: URL, from connections: [AVCaptureConnection]) {
-        // Enable the Record button to let the user stop recording.
-        DispatchQueue.main.async {
-            self.recordButton.isEnabled = true
-            self.recordButton.setImage(#imageLiteral(resourceName: "CaptureStop"), for: [])
-        }
-    }
-    
-    /// - Tag: DidFinishRecording
-    func fileOutput(_ output: AVCaptureFileOutput,
-                    didFinishRecordingTo outputFileURL: URL,
-                    from connections: [AVCaptureConnection],
-                    error: Error?) {
-        // Note: Because we use a unique file path for each recording, a new recording won't overwrite a recording mid-save.
-        func cleanup() {
-            let path = outputFileURL.path
-            if FileManager.default.fileExists(atPath: path) {
-                do {
-                    try FileManager.default.removeItem(atPath: path)
-                } catch {
-                    print("Could not remove file at url: \(outputFileURL)")
-                }
-            }
-            
-            if let currentBackgroundRecordingID = backgroundRecordingID {
-                backgroundRecordingID = UIBackgroundTaskIdentifier.invalid
-                
-                if currentBackgroundRecordingID != UIBackgroundTaskIdentifier.invalid {
-                    UIApplication.shared.endBackgroundTask(currentBackgroundRecordingID)
-                }
-            }
-        }
-        
-        var success = true
-        
-        if error != nil {
-            print("Movie file finishing error: \(String(describing: error))")
-            success = (((error! as NSError).userInfo[AVErrorRecordingSuccessfullyFinishedKey] as AnyObject).boolValue)!
-        }
-        
-        if success {
-            // Check the authorization status.
-            PHPhotoLibrary.requestAuthorization { status in
-                if status == .authorized {
-                    // Save the movie file to the photo library and cleanup.
-                    PHPhotoLibrary.shared().performChanges({
-                        let options = PHAssetResourceCreationOptions()
-                        options.shouldMoveFile = true
-                        let creationRequest = PHAssetCreationRequest.forAsset()
-                        creationRequest.addResource(with: .video, fileURL: outputFileURL, options: options)
-                    }, completionHandler: { success, error in
-                        if !success {
-                            print("AVCam couldn't save the movie to your photo library: \(String(describing: error))")
-                        }
-                        cleanup()
-                    }
-                    )
-                } else {
-                    cleanup()
-                }
-            }
-        } else {
-            cleanup()
-        }
-        
-        // Enable the Camera and Record buttons to let the user switch camera and start another recording.
-        DispatchQueue.main.async {
-            // Only enable the ability to change camera if the device has more than one camera.
-            self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-            self.recordButton.isEnabled = true
-            self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
-        }
-    }
     
     // MARK: KVO and Notifications
     
@@ -722,7 +608,7 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
             DispatchQueue.main.async {
                 // Only enable the ability to change camera if the device has more than one camera.
                 self.cameraButton.isEnabled = isSessionRunning && self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-                self.recordButton.isEnabled = isSessionRunning && self.movieFileOutput != nil
+                self.recordButton.isEnabled = isSessionRunning && self.videoOutput != nil
             }
         }
         keyValueObservations.append(keyValueObservation)
@@ -806,16 +692,14 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
          */
         let pressureLevel = systemPressureState.level
         if pressureLevel == .serious || pressureLevel == .critical {
-            if self.movieFileOutput == nil || self.movieFileOutput?.isRecording == false {
-                do {
-                    try self.videoDeviceInput.device.lockForConfiguration()
-                    print("WARNING: Reached elevated system pressure level: \(pressureLevel). Throttling frame rate.")
-                    self.videoDeviceInput.device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 20)
-                    self.videoDeviceInput.device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 15)
-                    self.videoDeviceInput.device.unlockForConfiguration()
-                } catch {
-                    print("Could not lock device for configuration: \(error)")
-                }
+            do {
+                try self.videoDeviceInput.device.lockForConfiguration()
+                print("WARNING: Reached elevated system pressure level: \(pressureLevel). Throttling frame rate.")
+                self.videoDeviceInput.device.activeVideoMinFrameDuration = CMTime(value: 1, timescale: 20)
+                self.videoDeviceInput.device.activeVideoMaxFrameDuration = CMTime(value: 1, timescale: 15)
+                self.videoDeviceInput.device.unlockForConfiguration()
+            } catch {
+                print("Could not lock device for configuration: \(error)")
             }
         } else if pressureLevel == .shutdown {
             print("Session stopped running due to shutdown system pressure level.")
@@ -886,10 +770,10 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
     }
 
     // MARK: - Properties
+    private var isRecording: Bool = false
     private var videoOutput: AVCaptureVideoDataOutput?
     private var videoWriter: AVAssetWriter?
     private var videoWriterInput: AVAssetWriterInput?
-    private var videoDataAdaptor: AVAssetWriterInputPixelBufferAdaptor?
     private var recordingStartTime: CMTime?
     private var currentFileURL: URL?
 
@@ -897,7 +781,6 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
     private var peerConnectionFactory: RTCPeerConnectionFactory?
     private var localVideoTrack: RTCVideoTrack?
     private var videoSource: RTCVideoSource?
-    private var videoCapturer: RTCVideoCapturer?
     private var peerConnection: RTCPeerConnection?
     private var dataChannel: RTCDataChannel?
     private var localSDP: RTCSessionDescription?
@@ -909,52 +792,61 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
 
 
     // MARK: - Video Recording
+    @IBAction private func toggleMovieRecording(_ recordButton: UIButton) {
+
+        cameraButton.isEnabled = false
+        recordButton.isEnabled = false
+
+        sessionQueue.async { [self] in
+            
+            if (isRecording) {
+                stopRecording()
+                DispatchQueue.main.async {
+                    // Only enable the ability to change camera if the device has more than one camera.
+                    self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+                    self.recordButton.isEnabled = true
+                    self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
+                }
+            } else {
+                startRecording()
+                DispatchQueue.main.async {
+                    self.recordButton.isEnabled = true
+                    self.recordButton.setImage(#imageLiteral(resourceName: "CaptureStop"), for: [])
+                }
+                
+            }
+        }
+
+    }
+    
+
     private func startRecording() {
         // Create a unique file URL
         let documentsPath = NSTemporaryDirectory()
-        let fileName = "video_\(Date().timeIntervalSince1970).mp4"
+        let fileName = "video_\(Date().timeIntervalSince1970).mov"
         let url = URL(fileURLWithPath: documentsPath).appendingPathComponent(fileName)
+//        let url = URL.documentsDirectory.appending(path: "video_\(Date().timeIntervalSince1970).mov")
         currentFileURL = url
         
         do {
             // Create asset writer
-            videoWriter = try AVAssetWriter(outputURL: url, fileType: .mp4)
-            
-            // Configure writer input for 4K@60fps
-            let videoSettings: [String: Any] = [
-                AVVideoCodecKey: AVVideoCodecType.h264,
-                AVVideoWidthKey: 3840,
-                AVVideoHeightKey: 2160,
-                AVVideoCompressionPropertiesKey: [
-                    kVTCompressionPropertyKey_ProfileLevel: kVTProfileLevel_H264_High_AutoLevel,
-                    kVTCompressionPropertyKey_RealTime: true,
-                    kVTCompressionPropertyKey_MaxKeyFrameInterval: 60,
-                    kVTCompressionPropertyKey_ExpectedFrameRate: 60
-                ]
-            ]
-            
-            videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: videoSettings)
+            videoWriter = try AVAssetWriter(outputURL: url, fileType: .mov)
+
+            videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
             videoWriterInput?.expectsMediaDataInRealTime = true
-            
-            // Create pixel buffer adaptor
-            let pixelBufferAttributes: [String: Any] = [
-                kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA,
-                kCVPixelBufferWidthKey as String: 3840,
-                kCVPixelBufferHeightKey as String: 2160
-            ]
-            videoDataAdaptor = AVAssetWriterInputPixelBufferAdaptor(
-                assetWriterInput: videoWriterInput!,
-                sourcePixelBufferAttributes: pixelBufferAttributes
-            )
             
             if videoWriter?.canAdd(videoWriterInput!) == true {
                 videoWriter?.add(videoWriterInput!)
             }
             
             // Start writing session
-            videoWriter?.startWriting()
+            if (!(videoWriter?.startWriting() ?? false)) {
+                print("Failed to start recording: \(String(describing: videoWriter?.error))")
+            }
             videoWriter?.startSession(atSourceTime: CMTime.zero)
             recordingStartTime = nil
+            
+            isRecording = true
             
         } catch {
             print("Failed to start recording: \(error)")
@@ -963,15 +855,19 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
 
     private func stopRecording() {
         
+        VTCompressionSessionCompleteFrames(compressionSession!, untilPresentationTimeStamp: CMTime.invalid)
         videoWriterInput?.markAsFinished()
         videoWriter?.finishWriting { [weak self] in
             guard let self = self, let url = self.currentFileURL else { return }
-            
+
             // Save to camera roll
             PHPhotoLibrary.requestAuthorization { status in
                 if status == .authorized {
                     PHPhotoLibrary.shared().performChanges({
-                        PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+                        let options = PHAssetResourceCreationOptions()
+                        options.shouldMoveFile = true
+                        let creationRequest = PHAssetCreationRequest.forAsset()
+                        creationRequest.addResource(with: .video, fileURL: url, options: options)
                     }) { success, error in
                         if success {
                             print("Video saved to camera roll")
@@ -985,6 +881,7 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
         
         videoWriter = nil
         videoWriterInput = nil
+        isRecording = false
     }
 
     // MARK: - WebRTC Setup
@@ -999,7 +896,7 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
         
         // Create video source and track
         videoSource = peerConnectionFactory?.videoSource()
-        videoCapturer = RTCFileVideoCapturer(delegate: self)
+        // videoCapturer = RTCFileVideoCapturer(delegate: self)
         
         // Create and initialize the configuration for the connection
         let config = RTCConfiguration()
@@ -1120,28 +1017,23 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
         }
     }
 
-    private func encodePixelBuffer(_ pixelBuffer: CVPixelBuffer, timestamp: CMTime) {
+    private func encodePixelBuffer(_ pixelBuffer: CVPixelBuffer, timestamp: CMTime, duration: CMTime) {
         guard let compressionSession = compressionSession else { return }
-        
-        var flags = VTEncodeInfoFlags()
-        let frameProperties: [String: Any] = [
-            kVTEncodeFrameOptionKey_ForceKeyFrame as String: false
-        ]
         
         VTCompressionSessionEncodeFrame(
             compressionSession,
             imageBuffer: pixelBuffer,
             presentationTimeStamp: timestamp,
-            duration: CMTime.invalid,
-            frameProperties: frameProperties as CFDictionary,
+            duration: duration,
+            frameProperties: nil,
             sourceFrameRefcon: nil,
-            infoFlagsOut: &flags
+            infoFlagsOut: nil
         )
     }
 
     private func handleEncodedFrame(sampleBuffer: CMSampleBuffer) {
         // Use the encoded frame for both recording and streaming
-        if movieFileOutput?.isRecording ?? false {
+        if isRecording {
             appendSampleBufferToRecording(sampleBuffer)
         }
         
@@ -1152,20 +1044,22 @@ class CameraViewController: UIViewController, AVCaptureFileOutputRecordingDelega
     }
 
     private func appendSampleBufferToRecording(_ sampleBuffer: CMSampleBuffer) {
-        guard movieFileOutput?.isRecording ?? false, let writer = videoWriter, let input = videoWriterInput, writer.status == .writing else {
+        guard isRecording, let writer = videoWriter, let input = videoWriterInput, writer.status == .writing else {
             return
         }
         
-        if recordingStartTime == nil {
-            recordingStartTime = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-        }
-        
         if input.isReadyForMoreMediaData {
-            let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-            let adjustedTime = CMTimeSubtract(timestamp, recordingStartTime ?? CMTime.zero)
-            
+            print("saving frame\n")
             // For H.264 encoded data, we can just append the sample buffer directly
-            input.append(sampleBuffer)
+            if !input.append(sampleBuffer) {
+                print("error adding frame ")
+                if (videoWriter?.status == .failed) {
+                    print("\(videoWriter!.error!)")
+                }
+                print("\n")
+            }
+        } else {
+            print("skipping frame\n")
         }
     }
 
@@ -1229,12 +1123,6 @@ extension CameraViewController: RTCPeerConnectionDelegate {
     }
 }
 
-extension CameraViewController: RTCVideoCapturerDelegate {
-    func capturer(_ capturer: RTCVideoCapturer, didCapture frame: RTCVideoFrame) {
-        // I don't care?
-    }
-}
-
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
@@ -1244,16 +1132,15 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
         
         let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
         
-//        // Use VideoToolbox to encode the pixel buffer
-//        encodePixelBuffer(pixelBuffer, timestamp: timestamp)
-//        
-//        // Also update the WebRTC video source (this will be used for preview)
-//        if let videoSource = videoSource {
-//            let rtcPixelBuffer = RTCCVPixelBuffer(pixelBuffer: pixelBuffer)
-//            let timeStampNs = Int64(timestamp.seconds * 1_000_000_000)
-//            let videoFrame = RTCVideoFrame(buffer: rtcPixelBuffer, rotation: RTCVideoRotation._0, timeStampNs: timeStampNs)
-//            videoSource.capturer(videoCapturer!, didCapture: videoFrame)
-//        }
+        if recordingStartTime == nil {
+            recordingStartTime = timestamp
+        }
+        
+        let adjustedTime = recordingStartTime != nil ? CMTimeSubtract(timestamp, recordingStartTime!) : CMTime.zero
+
+        // Use VideoToolbox to encode the pixel buffer
+        encodePixelBuffer(pixelBuffer, timestamp: adjustedTime, duration: CMSampleBufferGetDuration(sampleBuffer))
+
     }
 }
 
