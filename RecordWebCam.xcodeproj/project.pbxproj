@@ -13,6 +13,8 @@
 		7AA6771C1CFF765600B353FB /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7AA6771B1CFF765600B353FB /* Assets.xcassets */; };
 		7AA6771F1CFF765600B353FB /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 7AA6771D1CFF765600B353FB /* LaunchScreen.storyboard */; };
 		7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA677281CFF7B5C00B353FB /* PreviewView.swift */; };
+		963F35492DB12A7100B13793 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35482DB12A6900B13793 /* Network.swift */; };
+		963F354C2DB133A400B13793 /* TODO.txt in Resources */ = {isa = PBXBuildFile; fileRef = 963F354B2DB1339F00B13793 /* TODO.txt */; };
 		967953FB2DB04ED00014E1C0 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 967953FA2DB04ED00014E1C0 /* WebRTC */; };
 /* End PBXBuildFile section */
 
@@ -25,6 +27,10 @@
 		7AA6771E1CFF765600B353FB /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		7AA677201CFF765600B353FB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		7AA677281CFF7B5C00B353FB /* PreviewView.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PreviewView.swift; sourceTree = "<group>"; };
+		963F35482DB12A6900B13793 /* Network.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Network.swift; sourceTree = "<group>"; };
+		963F354A2DB12B1400B13793 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
+		963F354B2DB1339F00B13793 /* TODO.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO.txt; sourceTree = "<group>"; };
+		963F354E2DB1C4FA00B13793 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,6 +48,7 @@
 		7AA677081CFF765500B353FB = {
 			isa = PBXGroup;
 			children = (
+				963F354E2DB1C4FA00B13793 /* README.md */,
 				7AA677131CFF765600B353FB /* RecordWebCam */,
 				7AA677121CFF765600B353FB /* Products */,
 			);
@@ -58,9 +65,12 @@
 		7AA677131CFF765600B353FB /* RecordWebCam */ = {
 			isa = PBXGroup;
 			children = (
+				963F354A2DB12B1400B13793 /* BridgingHeader.h */,
+				963F35482DB12A6900B13793 /* Network.swift */,
 				7AA677141CFF765600B353FB /* AppDelegate.swift */,
 				7AA677281CFF7B5C00B353FB /* PreviewView.swift */,
 				7AA677161CFF765600B353FB /* CameraViewController.swift */,
+				963F354B2DB1339F00B13793 /* TODO.txt */,
 				7AA677181CFF765600B353FB /* Main.storyboard */,
 				7AA6771B1CFF765600B353FB /* Assets.xcassets */,
 				7AA6771D1CFF765600B353FB /* LaunchScreen.storyboard */,
@@ -133,6 +143,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				963F354C2DB133A400B13793 /* TODO.txt in Resources */,
 				7AA6771F1CFF765600B353FB /* LaunchScreen.storyboard in Resources */,
 				7AA6771C1CFF765600B353FB /* Assets.xcassets in Resources */,
 				7AA6771A1CFF765600B353FB /* Main.storyboard in Resources */,
@@ -148,6 +159,7 @@
 			files = (
 				7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */,
 				7AA677171CFF765600B353FB /* CameraViewController.swift in Sources */,
+				963F35492DB12A7100B13793 /* Network.swift in Sources */,
 				7AA677151CFF765600B353FB /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -229,6 +241,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/$(PROJECT_NAME)/BridgingHeader.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -283,6 +296,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/$(PROJECT_NAME)/BridgingHeader.h";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";

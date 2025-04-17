@@ -25,6 +25,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        ipAddress.text = getBestIpAddress()
+        
         // Disable the UI. Enable the UI later, if and only if the session starts running.
         cameraButton.isEnabled = false
         recordButton.isEnabled = false
@@ -376,6 +378,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     
     // MARK: Device Configuration
     
+    @IBOutlet private weak var ipAddress: UILabel!
+
     @IBOutlet private weak var cameraButton: UIButton!
     
     @IBOutlet private weak var cameraUnavailableLabel: UILabel!
@@ -801,19 +805,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             
             if (isRecording) {
                 stopRecording()
-                DispatchQueue.main.async {
-                    // Only enable the ability to change camera if the device has more than one camera.
-                    self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-                    self.recordButton.isEnabled = true
-                    self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
-                }
             } else {
                 startRecording()
-                DispatchQueue.main.async {
-                    self.recordButton.isEnabled = true
-                    self.recordButton.setImage(#imageLiteral(resourceName: "CaptureStop"), for: [])
-                }
-                
             }
         }
 
@@ -839,17 +832,24 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 videoWriter?.add(videoWriterInput!)
             }
             
+            recordingStartTime = nil
+            
             // Start writing session
             if (!(videoWriter?.startWriting() ?? false)) {
                 print("Failed to start recording: \(String(describing: videoWriter?.error))")
             }
             videoWriter?.startSession(atSourceTime: CMTime.zero)
-            recordingStartTime = nil
             
             isRecording = true
-            
+
+            DispatchQueue.main.async {
+                self.recordButton.isEnabled = true
+                self.recordButton.setImage(#imageLiteral(resourceName: "CaptureStop"), for: [])
+            }
+
         } catch {
-            print("Failed to start recording: \(error)")
+            showErrorAndStopRecording("Failed to start recording: \(error)")
+            self.recordButton.isEnabled = true
         }
     }
 
@@ -882,6 +882,14 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         videoWriter = nil
         videoWriterInput = nil
         isRecording = false
+        
+        DispatchQueue.main.async {
+            // Only enable the ability to change camera if the device has more than one camera.
+            self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+            self.recordButton.isEnabled = true
+            self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
+        }
+
     }
 
     // MARK: - WebRTC Setup
@@ -1045,21 +1053,20 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func appendSampleBufferToRecording(_ sampleBuffer: CMSampleBuffer) {
         guard isRecording, let writer = videoWriter, let input = videoWriterInput, writer.status == .writing else {
+            if (videoWriter?.status == .failed) {
+                showErrorAndStopRecording("\(videoWriter!.error!)")
+            }
             return
         }
         
         if input.isReadyForMoreMediaData {
-            print("saving frame\n")
+            print("saving frame")
             // For H.264 encoded data, we can just append the sample buffer directly
             if !input.append(sampleBuffer) {
-                print("error adding frame ")
-                if (videoWriter?.status == .failed) {
-                    print("\(videoWriter!.error!)")
-                }
-                print("\n")
+                print("error adding frame")
             }
         } else {
-            print("skipping frame\n")
+            print("skipping frame")
         }
     }
 
@@ -1072,6 +1079,21 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         print("Encoded frame would be sent to WebRTC")
     }
 
+    private func showErrorAndStopRecording(_ message:String) {
+        print(message)
+        
+        let alert = UIAlertController(title: "Error", message: message, preferredStyle: UIAlertController.Style.alert)
+
+        // add an action (button)
+        alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
+
+        // show the alert
+        self.present(alert, animated: true, completion: nil)
+        
+        if (isRecording) {
+            stopRecording();
+        }
+    }
 }
 
 

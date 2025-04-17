@@ -1,0 +1,10 @@
++ se cuelga de la nada
++ mejor rotacion
+- broadcast
+- el video esta mal orientado
+- sonido
+- boton de cambiar de camara no funciona
+- zoom
+- h265 (opcional)
+- 60fps
+- profit

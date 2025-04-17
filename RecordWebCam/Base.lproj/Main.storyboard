@@ -1,23 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="BYZ-38-t0r">
-    <device id="retina5_9" orientation="portrait" appearance="light"/>
+    <device id="retina5_9" orientation="landscape" appearance="light"/>
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="Stack View standard spacing" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
         <!--Camera View Controller-->
         <scene sceneID="tne-QT-ifu">
             <objects>
-                <viewController id="BYZ-38-t0r" userLabel="Camera View Controller" customClass="CameraViewController" customModule="AVCam" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController id="BYZ-38-t0r" userLabel="Camera View Controller" customClass="CameraViewController" customModule="RecordWebCam" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="8bC-Xf-vdC">
-                        <rect key="frame" x="0.0" y="0.0" width="375" height="812"/>
+                        <rect key="frame" x="0.0" y="0.0" width="812" height="375"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3eR-Rn-XpZ" userLabel="Preview" customClass="PreviewView" customModule="AVCam" customModuleProvider="target">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="812"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="3eR-Rn-XpZ" userLabel="Preview" customClass="PreviewView" customModule="RecordWebCam" customModuleProvider="target">
+                                <rect key="frame" x="50" y="0.0" width="712" height="375"/>
                                 <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <gestureRecognizers/>
                                 <connections>
@@ -25,13 +26,28 @@
                                 </connections>
                             </view>
                             <label hidden="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Camera Unavailable" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="zf0-db-esM" userLabel="Camera Unavailable">
-                                <rect key="frame" x="84" y="391.66666666666669" width="207" height="28.666666666666686"/>
+                                <rect key="frame" x="302.66666666666669" y="173.33333333333334" width="207" height="28.666666666666657"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="24"/>
                                 <color key="textColor" red="1" green="1" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="192.168.0.1" textAlignment="right" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Dzm-EW-hRI">
+                                <rect key="frame" x="50.000000000000007" y="50" width="84.666666666666686" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="120" id="FGj-HK-1wS"/>
+                                    <constraint firstAttribute="height" constant="21" id="Y1O-ni-j1N"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                                <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                                <variation key="heightClass=compact">
+                                    <mask key="constraints">
+                                        <exclude reference="FGj-HK-1wS"/>
+                                    </mask>
+                                </variation>
+                            </label>
                             <button hidden="YES" opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="FZr-Ip-7WL" userLabel="Resume">
-                                <rect key="frame" x="105" y="386.66666666666669" width="165" height="39"/>
+                                <rect key="frame" x="323.66666666666669" y="168" width="165" height="39"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="24"/>
                                 <inset key="contentEdgeInsets" minX="10" minY="5" maxX="10" maxY="5"/>
                                 <state key="normal" title="Tap to resume">
@@ -46,44 +62,82 @@
                                     <action selector="resumeInterruptedSession:" destination="BYZ-38-t0r" eventType="touchUpInside" id="42K-1B-qJd"/>
                                 </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eRT-dK-6dM" userLabel="Record">
-                                <rect key="frame" x="157.66666666666666" y="644" width="60" height="60"/>
+                            <stackView opaque="NO" contentMode="scaleToFill" distribution="equalSpacing" alignment="center" spacingType="standard" translatesAutoresizingMaskIntoConstraints="NO" id="WPM-ke-6rl" userLabel="Action bar">
+                                <rect key="frame" x="712" y="50" width="60" height="270"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5cn-fl-GP3" userLabel="Camera">
+                                        <rect key="frame" x="10" y="0.0" width="40" height="40"/>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="40" id="Abk-sv-rEz"/>
+                                            <constraint firstAttribute="height" constant="40" id="nHF-Uh-0hd"/>
+                                        </constraints>
+                                        <state key="normal" image="plus.magnifyingglass" catalog="system">
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <userDefinedRuntimeAttributes>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                                <integer key="value" value="4"/>
+                                            </userDefinedRuntimeAttribute>
+                                        </userDefinedRuntimeAttributes>
+                                        <connections>
+                                            <action selector="changeCamera:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ZC5-g3-1qy"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="eRT-dK-6dM" userLabel="Record">
+                                        <rect key="frame" x="0.0" y="105" width="60" height="60"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="60" id="L7Z-Nl-WyS"/>
+                                            <constraint firstAttribute="width" constant="60" id="VcO-yw-FQ6"/>
+                                        </constraints>
+                                        <state key="normal" image="CaptureVideo">
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <userDefinedRuntimeAttributes>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                                <integer key="value" value="4"/>
+                                            </userDefinedRuntimeAttribute>
+                                        </userDefinedRuntimeAttributes>
+                                        <connections>
+                                            <action selector="toggleMovieRecording:" destination="BYZ-38-t0r" eventType="touchUpInside" id="9R7-Ok-FpB"/>
+                                        </connections>
+                                    </button>
+                                    <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rUJ-G6-RPv" userLabel="Camera">
+                                        <rect key="frame" x="10" y="230" width="40" height="40"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="40" id="Ha8-Rx-IK4"/>
+                                            <constraint firstAttribute="width" constant="40" id="XdR-gf-ruE"/>
+                                        </constraints>
+                                        <state key="normal" image="FlipCamera">
+                                            <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                        </state>
+                                        <userDefinedRuntimeAttributes>
+                                            <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                                <integer key="value" value="4"/>
+                                            </userDefinedRuntimeAttribute>
+                                        </userDefinedRuntimeAttributes>
+                                        <connections>
+                                            <action selector="changeCamera:" destination="BYZ-38-t0r" eventType="touchUpInside" id="3W0-h3-6fc"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
                                 <constraints>
-                                    <constraint firstAttribute="height" constant="60" id="L7Z-Nl-WyS"/>
-                                    <constraint firstAttribute="width" constant="60" id="VcO-yw-FQ6"/>
+                                    <constraint firstAttribute="width" constant="60" id="28d-1W-Nx6"/>
+                                    <constraint firstAttribute="height" constant="60" id="K0p-Jd-vOD"/>
                                 </constraints>
-                                <state key="normal" image="CaptureVideo">
-                                    <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                </state>
-                                <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
-                                        <integer key="value" value="4"/>
-                                    </userDefinedRuntimeAttribute>
-                                </userDefinedRuntimeAttributes>
-                                <connections>
-                                    <action selector="toggleMovieRecording:" destination="BYZ-38-t0r" eventType="touchUpInside" id="9R7-Ok-FpB"/>
-                                </connections>
-                            </button>
-                            <button opaque="NO" contentMode="scaleAspectFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="rUJ-G6-RPv" userLabel="Camera">
-                                <rect key="frame" x="305" y="664" width="40" height="40"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="40" id="Ha8-Rx-IK4"/>
-                                    <constraint firstAttribute="width" constant="40" id="XdR-gf-ruE"/>
-                                </constraints>
-                                <state key="normal" image="FlipCamera">
-                                    <color key="titleShadowColor" red="0.5" green="0.5" blue="0.5" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-                                </state>
-                                <userDefinedRuntimeAttributes>
-                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
-                                        <integer key="value" value="4"/>
-                                    </userDefinedRuntimeAttribute>
-                                </userDefinedRuntimeAttributes>
-                                <connections>
-                                    <action selector="changeCamera:" destination="BYZ-38-t0r" eventType="touchUpInside" id="3W0-h3-6fc"/>
-                                </connections>
-                            </button>
+                                <variation key="default">
+                                    <mask key="constraints">
+                                        <exclude reference="28d-1W-Nx6"/>
+                                    </mask>
+                                </variation>
+                                <variation key="heightClass=compact" axis="vertical">
+                                    <mask key="constraints">
+                                        <include reference="28d-1W-Nx6"/>
+                                        <exclude reference="K0p-Jd-vOD"/>
+                                    </mask>
+                                </variation>
+                            </stackView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="t6u-H7-zPT" userLabel="HDR Video Mode">
-                                <rect key="frame" x="145" y="120" width="85.333333333333314" height="50"/>
+                                <rect key="frame" x="363.33333333333331" y="70" width="85.333333333333314" height="50"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="50" id="5rW-Y8-vgS"/>
                                     <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="iLS-gU-DSC"/>
@@ -98,31 +152,39 @@
                         <viewLayoutGuide key="safeArea" id="nyU-fN-aJh"/>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
+                            <constraint firstItem="WPM-ke-6rl" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" id="2Wu-4H-brN"/>
                             <constraint firstItem="t6u-H7-zPT" firstAttribute="centerX" secondItem="3eR-Rn-XpZ" secondAttribute="centerX" id="2iv-P4-SAP"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" id="8ud-UI-Sfr"/>
-                            <constraint firstItem="nyU-fN-aJh" firstAttribute="bottom" secondItem="eRT-dK-6dM" secondAttribute="bottom" constant="20" id="Nti-4U-ZHN"/>
                             <constraint firstItem="FZr-Ip-7WL" firstAttribute="centerX" secondItem="nyU-fN-aJh" secondAttribute="centerX" id="OaZ-uO-vXY"/>
-                            <constraint firstItem="eRT-dK-6dM" firstAttribute="centerX" secondItem="8bC-Xf-vdC" secondAttribute="centerX" id="Q8Z-Ix-Ajm"/>
+                            <constraint firstItem="WPM-ke-6rl" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" constant="-25" id="Qk9-av-l1G">
+                                <variation key="heightClass=compact" constant="10"/>
+                            </constraint>
                             <constraint firstItem="zf0-db-esM" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="Ris-mI-8lA"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="leading" secondItem="nyU-fN-aJh" secondAttribute="leading" id="Sdw-MH-42e"/>
                             <constraint firstItem="zf0-db-esM" firstAttribute="centerX" secondItem="nyU-fN-aJh" secondAttribute="centerX" id="W6q-xJ-jfF"/>
-                            <constraint firstItem="nyU-fN-aJh" firstAttribute="trailing" secondItem="rUJ-G6-RPv" secondAttribute="trailing" constant="30" id="aoZ-S9-lId"/>
-                            <constraint firstItem="nyU-fN-aJh" firstAttribute="bottom" secondItem="rUJ-G6-RPv" secondAttribute="bottom" constant="40" id="bnc-r3-z5b"/>
+                            <constraint firstItem="Dzm-EW-hRI" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" constant="-10" id="cbH-m5-tEo"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="bottom" secondItem="8bC-Xf-vdC" secondAttribute="bottom" id="ea0-4F-Kd7"/>
+                            <constraint firstItem="Dzm-EW-hRI" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" id="eoN-dD-MV1"/>
                             <constraint firstItem="t6u-H7-zPT" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" constant="20" id="frI-Hw-TzA" userLabel="Hdr Video Mode.top = Safe Area.top + 20"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="igk-MQ-CGt"/>
+                            <constraint firstItem="Dzm-EW-hRI" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="nyU-fN-aJh" secondAttribute="leading" symbolic="YES" id="kTM-CD-GZr"/>
+                            <constraint firstItem="WPM-ke-6rl" firstAttribute="bottom" secondItem="nyU-fN-aJh" secondAttribute="bottom" id="lSe-ld-4pc"/>
                             <constraint firstItem="FZr-Ip-7WL" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="sTY-i6-czN"/>
-                            <constraint firstItem="nyU-fN-aJh" firstAttribute="bottom" secondItem="eRT-dK-6dM" secondAttribute="bottom" constant="40" id="uNx-Fp-1IB"/>
-                            <constraint firstItem="rUJ-G6-RPv" firstAttribute="centerY" secondItem="eRT-dK-6dM" secondAttribute="centerY" constant="10" id="zsO-Kk-Xkj"/>
+                            <constraint firstItem="WPM-ke-6rl" firstAttribute="leading" secondItem="nyU-fN-aJh" secondAttribute="leading" constant="25" id="vl9-Ef-3xs"/>
+                            <constraint firstItem="Dzm-EW-hRI" firstAttribute="leading" secondItem="nyU-fN-aJh" secondAttribute="leading" id="zin-BY-bDa"/>
                         </constraints>
                         <variation key="default">
                             <mask key="constraints">
-                                <exclude reference="Nti-4U-ZHN"/>
+                                <exclude reference="zin-BY-bDa"/>
+                                <exclude reference="2Wu-4H-brN"/>
                             </mask>
                         </variation>
                         <variation key="heightClass=compact">
                             <mask key="constraints">
-                                <include reference="Nti-4U-ZHN"/>
+                                <exclude reference="cbH-m5-tEo"/>
+                                <include reference="zin-BY-bDa"/>
+                                <exclude reference="vl9-Ef-3xs"/>
+                                <include reference="2Wu-4H-brN"/>
                             </mask>
                         </variation>
                     </view>
@@ -132,6 +194,7 @@
                         <outlet property="HDRVideoModeButton" destination="t6u-H7-zPT" id="iUz-bk-gC1"/>
                         <outlet property="cameraButton" destination="rUJ-G6-RPv" id="dAV-WS-N1p"/>
                         <outlet property="cameraUnavailableLabel" destination="zf0-db-esM" id="P9W-lb-Pb8"/>
+                        <outlet property="ipAddress" destination="Dzm-EW-hRI" id="eWU-wM-6S9"/>
                         <outlet property="previewView" destination="3eR-Rn-XpZ" id="e7I-nu-L6j"/>
                         <outlet property="recordButton" destination="eRT-dK-6dM" id="iqk-en-NsW"/>
                         <outlet property="resumeButton" destination="FZr-Ip-7WL" id="tX5-Sx-rQK"/>
@@ -151,5 +214,6 @@
     <resources>
         <image name="CaptureVideo" width="150" height="150"/>
         <image name="FlipCamera" width="150" height="150"/>
+        <image name="plus.magnifyingglass" catalog="system" width="128" height="117"/>
     </resources>
 </document>
