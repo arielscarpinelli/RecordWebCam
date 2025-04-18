@@ -15,7 +15,8 @@
 		7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA677281CFF7B5C00B353FB /* PreviewView.swift */; };
 		963F35492DB12A7100B13793 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35482DB12A6900B13793 /* Network.swift */; };
 		963F354C2DB133A400B13793 /* TODO.txt in Resources */ = {isa = PBXBuildFile; fileRef = 963F354B2DB1339F00B13793 /* TODO.txt */; };
-		967953FB2DB04ED00014E1C0 /* WebRTC in Frameworks */ = {isa = PBXBuildFile; productRef = 967953FA2DB04ED00014E1C0 /* WebRTC */; };
+		963F35AF2DB2BB0900B13793 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 963F35AE2DB2BB0900B13793 /* SRTHaishinKit */; };
+		963F35B12DB2BEF400B13793 /* SRT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35B02DB2BEF200B13793 /* SRT.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		963F354A2DB12B1400B13793 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		963F354B2DB1339F00B13793 /* TODO.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO.txt; sourceTree = "<group>"; };
 		963F354E2DB1C4FA00B13793 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		963F35B02DB2BEF200B13793 /* SRT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SRT.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -38,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				967953FB2DB04ED00014E1C0 /* WebRTC in Frameworks */,
+				963F35AF2DB2BB0900B13793 /* SRTHaishinKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -66,6 +68,7 @@
 			isa = PBXGroup;
 			children = (
 				963F354A2DB12B1400B13793 /* BridgingHeader.h */,
+				963F35B02DB2BEF200B13793 /* SRT.swift */,
 				963F35482DB12A6900B13793 /* Network.swift */,
 				7AA677141CFF765600B353FB /* AppDelegate.swift */,
 				7AA677281CFF7B5C00B353FB /* PreviewView.swift */,
@@ -127,7 +130,7 @@
 			);
 			mainGroup = 7AA677081CFF765500B353FB;
 			packageReferences = (
-				967953F92DB04ED00014E1C0 /* XCRemoteSwiftPackageReference "WebRTC" */,
+				963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */,
 			);
 			productRefGroup = 7AA677121CFF765600B353FB /* Products */;
 			projectDirPath = "";
@@ -158,6 +161,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */,
+				963F35B12DB2BEF400B13793 /* SRT.swift in Sources */,
 				7AA677171CFF765600B353FB /* CameraViewController.swift in Sources */,
 				963F35492DB12A7100B13793 /* Network.swift in Sources */,
 				7AA677151CFF765600B353FB /* AppDelegate.swift in Sources */,
@@ -368,21 +372,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		967953F92DB04ED00014E1C0 /* XCRemoteSwiftPackageReference "WebRTC" */ = {
+		963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/stasel/WebRTC.git";
+			repositoryURL = "https://github.com/HaishinKit/HaishinKit.swift.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 135.0.0;
+				minimumVersion = 2.0.6;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		967953FA2DB04ED00014E1C0 /* WebRTC */ = {
+		963F35AE2DB2BB0900B13793 /* SRTHaishinKit */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 967953F92DB04ED00014E1C0 /* XCRemoteSwiftPackageReference "WebRTC" */;
-			productName = WebRTC;
+			package = 963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
+			productName = SRTHaishinKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

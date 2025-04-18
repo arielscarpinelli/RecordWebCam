@@ -1,6 +1,9 @@
 + se cuelga de la nada
 + mejor rotacion
-- broadcast
++ broadcast
+- DELAY
+- reconnection sucks
+- some crap with the timing, video starts frozen/broken
 - el video esta mal orientado
 - sonido
 - boton de cambiar de camara no funciona

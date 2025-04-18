@@ -8,8 +8,8 @@ The app's primary view controller that presents the camera interface.
 import UIKit
 import AVFoundation
 import Photos
-import WebRTC
 import VideoToolbox
+import libsrt
 
 
 class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDelegate
@@ -20,6 +20,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         return view.window?.windowScene?.interfaceOrientation ?? .unknown
     }
 	
+    private var srt: SRT = .init()
+    
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
@@ -85,6 +87,18 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             self.spinner.color = UIColor.yellow
             self.previewView.addSubview(self.spinner)
         }
+        do {
+            try srt.initSrt()
+        } catch SRTError.connection(let msg){
+            DispatchQueue.main.async {
+                self.showErrorAndStopRecording(msg)
+            }
+        } catch {
+            DispatchQueue.main.async {
+                self.showErrorAndStopRecording("unknown error initializing srt")
+            }
+        }
+
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -133,6 +147,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 }
             }
         }
+        
+        srt.accept()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -143,6 +159,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 self.removeObservers()
             }
         }
+        
+        srt.close()
         
         super.viewWillDisappear(animated)
     }
@@ -179,7 +197,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     
     private let session = AVCaptureSession()
     private var isSessionRunning = false
-    private var selectedSemanticSegmentationMatteTypes = [AVSemanticSegmentationMatte.MatteType]()
     
     // Communicate with the session and other session objects on this queue.
     private let sessionQueue = DispatchQueue(label: "session queue")
@@ -748,6 +765,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 }
             }
         }
+        srt.close()
     }
     
     @objc
@@ -771,6 +789,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
             )
         }
+        srt.accept()
     }
 
     // MARK: - Properties
@@ -780,14 +799,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     private var videoWriterInput: AVAssetWriterInput?
     private var recordingStartTime: CMTime?
     private var currentFileURL: URL?
-
-    // WebRTC properties
-    private var peerConnectionFactory: RTCPeerConnectionFactory?
-    private var localVideoTrack: RTCVideoTrack?
-    private var videoSource: RTCVideoSource?
-    private var peerConnection: RTCPeerConnection?
-    private var dataChannel: RTCDataChannel?
-    private var localSDP: RTCSessionDescription?
 
     // VideoToolbox encoder
     private var compressionSession: VTCompressionSession?
@@ -815,10 +826,13 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func startRecording() {
         // Create a unique file URL
-        let documentsPath = NSTemporaryDirectory()
-        let fileName = "video_\(Date().timeIntervalSince1970).mov"
+        let documentsPath = NSTemporaryDirectory() // URL.documentsDirectory
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
+        let dateString = dateFormatter.string(from: Date())
+        let fileName = "video_\(dateString).mov"
         let url = URL(fileURLWithPath: documentsPath).appendingPathComponent(fileName)
-//        let url = URL.documentsDirectory.appending(path: "video_\(Date().timeIntervalSince1970).mov")
+
         currentFileURL = url
         
         do {
@@ -855,7 +869,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func stopRecording() {
         
-        VTCompressionSessionCompleteFrames(compressionSession!, untilPresentationTimeStamp: CMTime.invalid)
+        // VTCompressionSessionCompleteFrames(compressionSession!, untilPresentationTimeStamp: CMTime.invalid)
         videoWriterInput?.markAsFinished()
         videoWriter?.finishWriting { [weak self] in
             guard let self = self, let url = self.currentFileURL else { return }
@@ -891,84 +905,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         }
 
     }
-
-    // MARK: - WebRTC Setup
-    private func setupWebRTC() {
-        // Initialize RTCPeerConnectionFactory
-        let videoEncoderFactory = RTCDefaultVideoEncoderFactory()
-        let videoDecoderFactory = RTCDefaultVideoDecoderFactory()
-        peerConnectionFactory = RTCPeerConnectionFactory(
-            encoderFactory: videoEncoderFactory,
-            decoderFactory: videoDecoderFactory
-        )
-        
-        // Create video source and track
-        videoSource = peerConnectionFactory?.videoSource()
-        // videoCapturer = RTCFileVideoCapturer(delegate: self)
-        
-        // Create and initialize the configuration for the connection
-        let config = RTCConfiguration()
-        config.sdpSemantics = .unifiedPlan
-        config.iceServers = []  // No STUN/TURN servers for local LAN
-        config.bundlePolicy = .maxBundle
-        
-        // Create peer connection
-        let constraints = RTCMediaConstraints(
-            mandatoryConstraints: nil,
-            optionalConstraints: ["DtlsSrtpKeyAgreement": "true"]
-        )
-        peerConnection = peerConnectionFactory?.peerConnection(
-            with: config,
-            constraints: constraints,
-            delegate: self
-        )
-        
-        // Create video track and add to peer connection
-        localVideoTrack = peerConnectionFactory?.videoTrack(with: videoSource!, trackId: "video0")
-        if let localVideoTrack = localVideoTrack {
-            peerConnection?.add(localVideoTrack, streamIds: ["stream0"])
-        }
-        
-        // Create data channel
-        let dataChannelConfig = RTCDataChannelConfiguration()
-        dataChannelConfig.isOrdered = true
-        dataChannel = peerConnection?.dataChannel(forLabel: "dataChannel", configuration: dataChannelConfig)
-    }
-
-    private func startLocalWebRTCServer() {
-        // Create a WebRTC offer
-        let constraints = RTCMediaConstraints(
-            mandatoryConstraints: [
-                "OfferToReceiveAudio": "false",
-                "OfferToReceiveVideo": "true"
-            ],
-            optionalConstraints: nil
-        )
-        
-        peerConnection?.offer(for: constraints) { [weak self] (sdp, error) in
-            guard let self = self, let sdp = sdp else {
-                print("Failed to create offer: \(error?.localizedDescription ?? "unknown error")")
-                return
-            }
-            
-            self.peerConnection?.setLocalDescription(sdp) { error in
-                if let error = error {
-                    print("Failed to set local description: \(error.localizedDescription)")
-                    return
-                }
-                
-                self.localSDP = sdp
-                
-                // In a real app, you would broadcast the SDP information on the local network
-                // via Bonjour/mDNS or websockets
-                
-                // For this example, we'll print the SDP info
-                print("Local SDP created: \(sdp.sdp)")
-                
-            }
-        }
-    }
-
 
     // MARK: - VideoToolbox Encoder Setup
     private func setupVideoToolboxEncoder() {
@@ -1025,30 +961,14 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         }
     }
 
-    private func encodePixelBuffer(_ pixelBuffer: CVPixelBuffer, timestamp: CMTime, duration: CMTime) {
-        guard let compressionSession = compressionSession else { return }
-        
-        VTCompressionSessionEncodeFrame(
-            compressionSession,
-            imageBuffer: pixelBuffer,
-            presentationTimeStamp: timestamp,
-            duration: duration,
-            frameProperties: nil,
-            sourceFrameRefcon: nil,
-            infoFlagsOut: nil
-        )
-    }
-
     private func handleEncodedFrame(sampleBuffer: CMSampleBuffer) {
         // Use the encoded frame for both recording and streaming
         if isRecording {
             appendSampleBufferToRecording(sampleBuffer)
         }
         
-        // For WebRTC, we convert the sample buffer to an RTCEncodedImage and send it
-        if let videoSource = videoSource, videoSource.state == .live {
-            sendEncodedFrameToWebRTC(sampleBuffer)
-        }
+        srt.append(sampleBuffer)
+        
     }
 
     private func appendSampleBufferToRecording(_ sampleBuffer: CMSampleBuffer) {
@@ -1059,24 +979,40 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             return
         }
         
+        let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
+        if recordingStartTime == nil {
+            recordingStartTime = timestamp
+        }
+
         if input.isReadyForMoreMediaData {
             print("saving frame")
+            
+            let adjustedTime = CMTimeSubtract(timestamp, recordingStartTime ?? CMTime.zero)
+
+            var timingInfo = CMSampleTimingInfo(duration: sampleBuffer.duration, presentationTimeStamp: adjustedTime, decodeTimeStamp: .invalid)
+
+            var adjustedSampleBuffer: CMSampleBuffer?
+            
+            CMSampleBufferCreateCopyWithNewTiming(
+                allocator: kCFAllocatorDefault,
+                sampleBuffer: sampleBuffer,
+                sampleTimingEntryCount: 1,
+                sampleTimingArray: &timingInfo,
+                sampleBufferOut: &adjustedSampleBuffer
+            )
+            
+            if adjustedSampleBuffer == nil {
+                showErrorAndStopRecording("failed to adjust frame timing")
+                return
+            }
+
             // For H.264 encoded data, we can just append the sample buffer directly
-            if !input.append(sampleBuffer) {
+            if !input.append(adjustedSampleBuffer!) {
                 print("error adding frame")
             }
         } else {
             print("skipping frame")
         }
-    }
-
-    private func sendEncodedFrameToWebRTC(_ sampleBuffer: CMSampleBuffer) {
-        // In a real implementation, we would convert the sample buffer to an RTCEncodedImage
-        // and send it via the WebRTC encoder. However, this requires some lower-level
-        // WebRTC API access that is beyond the scope of this example.
-        
-        // Instead, we'll note that this would happen here
-        print("Encoded frame would be sent to WebRTC")
     }
 
     private func showErrorAndStopRecording(_ message:String) {
@@ -1096,73 +1032,26 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     }
 }
 
-
-// MARK: - RTCPeerConnectionDelegate
-extension CameraViewController: RTCPeerConnectionDelegate {
-    func peerConnection(_ peerConnection: RTCPeerConnection, didChange stateChanged: RTCSignalingState) {
-        print("Signaling state changed: \(stateChanged.rawValue)")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didAdd stream: RTCMediaStream) {
-        print("Stream added")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove stream: RTCMediaStream) {
-        print("Stream removed")
-    }
-    
-    func peerConnectionShouldNegotiate(_ peerConnection: RTCPeerConnection) {
-        print("Should negotiate")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceConnectionState) {
-        print("ICE connection state changed: \(newState.rawValue)")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didChange newState: RTCIceGatheringState) {
-        print("ICE gathering state changed: \(newState.rawValue)")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didGenerate candidate: RTCIceCandidate) {
-        print("Generated candidate: \(candidate.sdp)")
-        // In a real app, you would send this candidate to the remote peer
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didRemove candidates: [RTCIceCandidate]) {
-        print("Removed candidates")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didOpen dataChannel: RTCDataChannel) {
-        print("Data channel opened: \(dataChannel.label)")
-    }
-    
-    func peerConnection(_ peerConnection: RTCPeerConnection, didSetSessionDescriptionWithError error: Error?) {
-        if let error = error {
-            print("Failed to set session description: \(error)")
-        } else {
-            print("Session description set successfully")
-        }
-    }
-}
-
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {
+        
+        if !isRecording && !srt.isConnected {
             return
         }
-        
-        let timestamp = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
-        
-        if recordingStartTime == nil {
-            recordingStartTime = timestamp
-        }
-        
-        let adjustedTime = recordingStartTime != nil ? CMTimeSubtract(timestamp, recordingStartTime!) : CMTime.zero
 
-        // Use VideoToolbox to encode the pixel buffer
-        encodePixelBuffer(pixelBuffer, timestamp: adjustedTime, duration: CMSampleBufferGetDuration(sampleBuffer))
-
+        guard let compressionSession = compressionSession,
+        let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
+                
+        VTCompressionSessionEncodeFrame(
+            compressionSession,
+            imageBuffer: pixelBuffer,
+            presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sampleBuffer),
+            duration: CMSampleBufferGetDuration(sampleBuffer),
+            frameProperties: nil,
+            sourceFrameRefcon: nil,
+            infoFlagsOut: nil
+        )
     }
 }
 

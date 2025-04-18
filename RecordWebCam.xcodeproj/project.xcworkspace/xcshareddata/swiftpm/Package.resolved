@@ -1,13 +1,22 @@
 {
-  "originHash" : "7ca243407a3b132834ec3b117a3aea85a8f743151ef868a872c8bbf8082921f6",
+  "originHash" : "8ffe6f7a82e841484f1811cde89a8ba809ba01add34d36d4faced84ec356d0a7",
   "pins" : [
     {
-      "identity" : "webrtc",
+      "identity" : "haishinkit.swift",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/stasel/WebRTC.git",
+      "location" : "https://github.com/HaishinKit/HaishinKit.swift.git",
       "state" : {
-        "revision" : "e15b6945119ac4702b2ff6f770823341e1366ec8",
-        "version" : "135.0.0"
+        "revision" : "ec8254cde6071893dddbf7a013520cb59ee0cd38",
+        "version" : "2.0.6"
+      }
+    },
+    {
+      "identity" : "logboard",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/shogo4405/Logboard.git",
+      "state" : {
+        "revision" : "272976e1f3e8873e60ffe4b08fe50df48a93751b",
+        "version" : "2.5.0"
       }
     }
   ],
