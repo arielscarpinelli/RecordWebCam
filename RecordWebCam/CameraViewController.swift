@@ -90,13 +90,9 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         do {
             try srt.initSrt()
         } catch SRTError.connection(let msg){
-            DispatchQueue.main.async {
-                self.showErrorAndStopRecording(msg)
-            }
+            self.showErrorAndStopRecording(msg)
         } catch {
-            DispatchQueue.main.async {
-                self.showErrorAndStopRecording("unknown error initializing srt")
-            }
+            self.showErrorAndStopRecording("unknown error initializing srt")
         }
 
     }
@@ -798,6 +794,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     private var videoWriter: AVAssetWriter?
     private var videoWriterInput: AVAssetWriterInput?
     private var recordingStartTime: CMTime?
+    private var recordingStopTime: CMTime?
     private var currentFileURL: URL?
 
     // VideoToolbox encoder
@@ -826,7 +823,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func startRecording() {
         // Create a unique file URL
-        let documentsPath = NSTemporaryDirectory() // URL.documentsDirectory
+        let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] // NSTemporaryDirectory()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd_HH-mm-ss"
         let dateString = dateFormatter.string(from: Date())
@@ -847,6 +844,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
             
             recordingStartTime = nil
+            recordingStopTime = nil
             
             // Start writing session
             if (!(videoWriter?.startWriting() ?? false)) {
@@ -869,39 +867,47 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func stopRecording() {
         
-        // VTCompressionSessionCompleteFrames(compressionSession!, untilPresentationTimeStamp: CMTime.invalid)
-        videoWriterInput?.markAsFinished()
-        videoWriter?.finishWriting { [weak self] in
-            guard let self = self, let url = self.currentFileURL else { return }
+        isRecording = false
+        DispatchQueue.main.async {
+            self.recordButton.isEnabled = false
+        }
+        
+        sessionQueue.async { [self] in
+            if recordingStopTime != nil {
+                VTCompressionSessionCompleteFrames(compressionSession!, untilPresentationTimeStamp: recordingStopTime!)
+            }
+            videoWriterInput?.markAsFinished()
+            videoWriter?.finishWriting { [weak self] in
+                guard let self = self, let url = self.currentFileURL else { return }
 
-            // Save to camera roll
-            PHPhotoLibrary.requestAuthorization { status in
-                if status == .authorized {
-                    PHPhotoLibrary.shared().performChanges({
-                        let options = PHAssetResourceCreationOptions()
-                        options.shouldMoveFile = true
-                        let creationRequest = PHAssetCreationRequest.forAsset()
-                        creationRequest.addResource(with: .video, fileURL: url, options: options)
-                    }) { success, error in
-                        if success {
-                            print("Video saved to camera roll")
-                        } else if let error = error {
-                            print("Error saving video: \(error)")
+                // Save to camera roll
+                PHPhotoLibrary.requestAuthorization { status in
+                    if status == .authorized {
+                        PHPhotoLibrary.shared().performChanges({
+                            let options = PHAssetResourceCreationOptions()
+                            options.shouldMoveFile = true
+                            let creationRequest = PHAssetCreationRequest.forAsset()
+                            creationRequest.addResource(with: .video, fileURL: url, options: options)
+                        }) { success, error in
+                            if success {
+                                print("Video saved to camera roll")
+                            } else if let error = error {
+                                self.showErrorAndStopRecording("Error saving video: \(error). You can still check it in the Files app")
+                            }
+                            DispatchQueue.main.async {
+                                // Only enable the ability to change camera if the device has more than one camera.
+                                self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+                                self.recordButton.isEnabled = true
+                                self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
+                            }
+
                         }
                     }
                 }
             }
-        }
-        
-        videoWriter = nil
-        videoWriterInput = nil
-        isRecording = false
-        
-        DispatchQueue.main.async {
-            // Only enable the ability to change camera if the device has more than one camera.
-            self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-            self.recordButton.isEnabled = true
-            self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
+            
+            videoWriter = nil
+            videoWriterInput = nil
         }
 
     }
@@ -983,6 +989,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         if recordingStartTime == nil {
             recordingStartTime = timestamp
         }
+        recordingStopTime = timestamp
 
         if input.isReadyForMoreMediaData {
             print("saving frame")
@@ -1018,16 +1025,19 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     private func showErrorAndStopRecording(_ message:String) {
         print(message)
         
-        let alert = UIAlertController(title: "Error", message: message, preferredStyle: UIAlertController.Style.alert)
-
-        // add an action (button)
-        alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
-
-        // show the alert
-        self.present(alert, animated: true, completion: nil)
-        
         if (isRecording) {
             stopRecording();
+        }
+
+        DispatchQueue.main.async {
+            
+            let alert = UIAlertController(title: "Error", message: message, preferredStyle: UIAlertController.Style.alert)
+            
+            // add an action (button)
+            alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
+            
+            // show the alert
+            self.present(alert, animated: true, completion: nil)
         }
     }
 }
