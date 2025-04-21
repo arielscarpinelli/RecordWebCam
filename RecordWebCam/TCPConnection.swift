@@ -6,7 +6,7 @@ import Foundation // Needed for Data conversion and dispatchMain
 let port: NWEndpoint.Port = 4747
 
 // --- Server Class ---
-class TCP {
+class TCPConnection {
 
     var listener: NWListener?
     private var connectionsByID: [Int: ServerConnection] = [:] // Keep track of connections

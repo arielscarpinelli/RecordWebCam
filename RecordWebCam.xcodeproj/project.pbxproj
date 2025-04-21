@@ -15,7 +15,7 @@
 		7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA677281CFF7B5C00B353FB /* PreviewView.swift */; };
 		963F35492DB12A7100B13793 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35482DB12A6900B13793 /* Network.swift */; };
 		963F354C2DB133A400B13793 /* TODO.txt in Resources */ = {isa = PBXBuildFile; fileRef = 963F354B2DB1339F00B13793 /* TODO.txt */; };
-		967980C82DB53D5F00C7DC4A /* TCP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967980C72DB53D5C00C7DC4A /* TCP.swift */; };
+		967980C82DB53D5F00C7DC4A /* TCPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967980C72DB53D5C00C7DC4A /* TCPConnection.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,7 +31,7 @@
 		963F354A2DB12B1400B13793 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		963F354B2DB1339F00B13793 /* TODO.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO.txt; sourceTree = "<group>"; };
 		963F354E2DB1C4FA00B13793 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		967980C72DB53D5C00C7DC4A /* TCP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCP.swift; sourceTree = "<group>"; };
+		967980C72DB53D5C00C7DC4A /* TCPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCPConnection.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -65,7 +65,7 @@
 		7AA677131CFF765600B353FB /* RecordWebCam */ = {
 			isa = PBXGroup;
 			children = (
-				967980C72DB53D5C00C7DC4A /* TCP.swift */,
+				967980C72DB53D5C00C7DC4A /* TCPConnection.swift */,
 				963F354A2DB12B1400B13793 /* BridgingHeader.h */,
 				963F35482DB12A6900B13793 /* Network.swift */,
 				7AA677141CFF765600B353FB /* AppDelegate.swift */,
@@ -158,7 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */,
-				967980C82DB53D5F00C7DC4A /* TCP.swift in Sources */,
+				967980C82DB53D5F00C7DC4A /* TCPConnection.swift in Sources */,
 				7AA677171CFF765600B353FB /* CameraViewController.swift in Sources */,
 				963F35492DB12A7100B13793 /* Network.swift in Sources */,
 				7AA677151CFF765600B353FB /* AppDelegate.swift in Sources */,

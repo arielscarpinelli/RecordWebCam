@@ -18,7 +18,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         return view.window?.windowScene?.interfaceOrientation ?? .unknown
     }
 	
-    private var connection: TCP = .init()
+    private var connection: TCPConnection = .init()
     
     // MARK: View Controller Life Cycle
     
