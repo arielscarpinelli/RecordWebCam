@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 54;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -15,8 +15,7 @@
 		7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AA677281CFF7B5C00B353FB /* PreviewView.swift */; };
 		963F35492DB12A7100B13793 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35482DB12A6900B13793 /* Network.swift */; };
 		963F354C2DB133A400B13793 /* TODO.txt in Resources */ = {isa = PBXBuildFile; fileRef = 963F354B2DB1339F00B13793 /* TODO.txt */; };
-		963F35AF2DB2BB0900B13793 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 963F35AE2DB2BB0900B13793 /* SRTHaishinKit */; };
-		963F35B12DB2BEF400B13793 /* SRT.swift in Sources */ = {isa = PBXBuildFile; fileRef = 963F35B02DB2BEF200B13793 /* SRT.swift */; };
+		967980C82DB53D5F00C7DC4A /* TCP.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967980C72DB53D5C00C7DC4A /* TCP.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,7 +31,7 @@
 		963F354A2DB12B1400B13793 /* BridgingHeader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BridgingHeader.h; sourceTree = "<group>"; };
 		963F354B2DB1339F00B13793 /* TODO.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = TODO.txt; sourceTree = "<group>"; };
 		963F354E2DB1C4FA00B13793 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		963F35B02DB2BEF200B13793 /* SRT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SRT.swift; sourceTree = "<group>"; };
+		967980C72DB53D5C00C7DC4A /* TCP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCP.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -40,7 +39,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				963F35AF2DB2BB0900B13793 /* SRTHaishinKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -67,8 +65,8 @@
 		7AA677131CFF765600B353FB /* RecordWebCam */ = {
 			isa = PBXGroup;
 			children = (
+				967980C72DB53D5C00C7DC4A /* TCP.swift */,
 				963F354A2DB12B1400B13793 /* BridgingHeader.h */,
-				963F35B02DB2BEF200B13793 /* SRT.swift */,
 				963F35482DB12A6900B13793 /* Network.swift */,
 				7AA677141CFF765600B353FB /* AppDelegate.swift */,
 				7AA677281CFF7B5C00B353FB /* PreviewView.swift */,
@@ -130,7 +128,6 @@
 			);
 			mainGroup = 7AA677081CFF765500B353FB;
 			packageReferences = (
-				963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */,
 			);
 			productRefGroup = 7AA677121CFF765600B353FB /* Products */;
 			projectDirPath = "";
@@ -161,7 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */,
-				963F35B12DB2BEF400B13793 /* SRT.swift in Sources */,
+				967980C82DB53D5F00C7DC4A /* TCP.swift in Sources */,
 				7AA677171CFF765600B353FB /* CameraViewController.swift in Sources */,
 				963F35492DB12A7100B13793 /* Network.swift in Sources */,
 				7AA677151CFF765600B353FB /* AppDelegate.swift in Sources */,
@@ -299,9 +296,8 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
-				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OBJC_BRIDGING_HEADER = "$(PROJECT_DIR)/$(PROJECT_NAME)/BridgingHeader.h";
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_OPTIMIZATION_LEVEL = "-Owholemodule";
 				SWIFT_VERSION = 4.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
@@ -315,10 +311,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 8H35YSV493;
 				INFOPLIST_FILE = RecordWebCam/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.arielscarpinelli.RecordWebCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -335,10 +328,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				DEVELOPMENT_TEAM = 8H35YSV493;
 				INFOPLIST_FILE = RecordWebCam/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.arielscarpinelli.RecordWebCam;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -370,25 +360,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/HaishinKit/HaishinKit.swift.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.6;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		963F35AE2DB2BB0900B13793 /* SRTHaishinKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 963F35AD2DB2BB0900B13793 /* XCRemoteSwiftPackageReference "HaishinKit.swift" */;
-			productName = SRTHaishinKit;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 7AA677091CFF765500B353FB /* Project object */;
 }

@@ -9,8 +9,6 @@ import UIKit
 import AVFoundation
 import Photos
 import VideoToolbox
-import libsrt
-
 
 class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDelegate
     
@@ -20,7 +18,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         return view.window?.windowScene?.interfaceOrientation ?? .unknown
     }
 	
-    private var srt: SRT = .init()
+    private var connection: TCP = .init()
     
     // MARK: View Controller Life Cycle
     
@@ -88,11 +86,9 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             self.previewView.addSubview(self.spinner)
         }
         do {
-            try srt.initSrt()
-        } catch SRTError.connection(let msg){
-            self.showErrorAndStopRecording(msg)
+            try connection.start()
         } catch {
-            self.showErrorAndStopRecording("unknown error initializing srt")
+            self.showErrorAndStopRecording("unknown error initializing connection \(error)")
         }
 
     }
@@ -144,7 +140,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
         }
         
-        srt.accept()
+        connection.accept()
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -156,7 +152,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
         }
         
-        srt.close()
+        connection.close()
         
         super.viewWillDisappear(animated)
     }
@@ -761,7 +757,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 }
             }
         }
-        srt.close()
+        connection.close()
     }
     
     @objc
@@ -785,7 +781,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
             )
         }
-        srt.accept()
+        connection.accept()
     }
 
     // MARK: - Properties
@@ -969,11 +965,11 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 
     private func handleEncodedFrame(sampleBuffer: CMSampleBuffer) {
         // Use the encoded frame for both recording and streaming
+        connection.append(sampleBuffer)
+
         if isRecording {
             appendSampleBufferToRecording(sampleBuffer)
         }
-        
-        srt.append(sampleBuffer)
         
     }
 
@@ -1046,7 +1042,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
-        if !isRecording && !srt.isConnected {
+        if !isRecording && !self.connection.isConnected {
             return
         }
 

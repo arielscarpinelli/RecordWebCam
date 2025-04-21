@@ -1,13 +1,13 @@
-+ se cuelga de la nada
-+ mejor rotacion
-+ broadcast
-- DELAY
-- reconnection sucks
-- some crap with the timing, video starts frozen/broken
 - el video esta mal orientado
+- kbps meter when connected
+- wake lock
+- some crap with the timing, video starts frozen/broken
 - sonido
-- boton de cambiar de camara no funciona
+- sacar HDR
 - zoom
+- pinch
+- remote control
+- cambiar iconos
 - h265 (opcional)
 - 60fps
 - profit
