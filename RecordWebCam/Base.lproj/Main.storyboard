@@ -136,24 +136,11 @@
                                     </mask>
                                 </variation>
                             </stackView>
-                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="t6u-H7-zPT" userLabel="HDR Video Mode">
-                                <rect key="frame" x="363.33333333333331" y="70" width="85.333333333333314" height="50"/>
-                                <constraints>
-                                    <constraint firstAttribute="height" constant="50" id="5rW-Y8-vgS"/>
-                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="80" id="iLS-gU-DSC"/>
-                                </constraints>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="HDR On"/>
-                                <connections>
-                                    <action selector="toggleHDRVideoMode:" destination="BYZ-38-t0r" eventType="touchUpInside" id="ELO-tQ-f71"/>
-                                </connections>
-                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="nyU-fN-aJh"/>
                         <color key="backgroundColor" red="0.0" green="0.0" blue="0.0" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
                             <constraint firstItem="WPM-ke-6rl" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" id="2Wu-4H-brN"/>
-                            <constraint firstItem="t6u-H7-zPT" firstAttribute="centerX" secondItem="3eR-Rn-XpZ" secondAttribute="centerX" id="2iv-P4-SAP"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" id="8ud-UI-Sfr"/>
                             <constraint firstItem="FZr-Ip-7WL" firstAttribute="centerX" secondItem="nyU-fN-aJh" secondAttribute="centerX" id="OaZ-uO-vXY"/>
                             <constraint firstItem="WPM-ke-6rl" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" constant="-25" id="Qk9-av-l1G">
@@ -165,7 +152,6 @@
                             <constraint firstItem="Dzm-EW-hRI" firstAttribute="trailing" secondItem="nyU-fN-aJh" secondAttribute="trailing" constant="-10" id="cbH-m5-tEo"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="bottom" secondItem="8bC-Xf-vdC" secondAttribute="bottom" id="ea0-4F-Kd7"/>
                             <constraint firstItem="Dzm-EW-hRI" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" id="eoN-dD-MV1"/>
-                            <constraint firstItem="t6u-H7-zPT" firstAttribute="top" secondItem="nyU-fN-aJh" secondAttribute="top" constant="20" id="frI-Hw-TzA" userLabel="Hdr Video Mode.top = Safe Area.top + 20"/>
                             <constraint firstItem="3eR-Rn-XpZ" firstAttribute="centerY" secondItem="8bC-Xf-vdC" secondAttribute="centerY" id="igk-MQ-CGt"/>
                             <constraint firstItem="Dzm-EW-hRI" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="nyU-fN-aJh" secondAttribute="leading" symbolic="YES" id="kTM-CD-GZr"/>
                             <constraint firstItem="WPM-ke-6rl" firstAttribute="bottom" secondItem="nyU-fN-aJh" secondAttribute="bottom" id="lSe-ld-4pc"/>
@@ -191,7 +177,6 @@
                     <extendedEdge key="edgesForExtendedLayout"/>
                     <nil key="simulatedStatusBarMetrics"/>
                     <connections>
-                        <outlet property="HDRVideoModeButton" destination="t6u-H7-zPT" id="iUz-bk-gC1"/>
                         <outlet property="cameraButton" destination="rUJ-G6-RPv" id="dAV-WS-N1p"/>
                         <outlet property="cameraUnavailableLabel" destination="zf0-db-esM" id="P9W-lb-Pb8"/>
                         <outlet property="ipAddress" destination="Dzm-EW-hRI" id="eWU-wM-6S9"/>

@@ -30,7 +30,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         // Disable the UI. Enable the UI later, if and only if the session starts running.
         cameraButton.isEnabled = false
         recordButton.isEnabled = false
-        HDRVideoModeButton.isHidden = true
         
         // Set up the video preview view.
         previewView.session = session
@@ -318,27 +317,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         if self.session.canAddOutput(videoOutput) {
             self.session.beginConfiguration()
             self.session.addOutput(videoOutput)
-            
-            self.selectedMovieMode10BitDeviceFormat = self.tenBitVariantOfFormat(activeFormat: self.videoDeviceInput.device.activeFormat)
-            
-            if self.selectedMovieMode10BitDeviceFormat != nil {
-                DispatchQueue.main.async {
-                    self.HDRVideoModeButton.isHidden = false
-                    self.HDRVideoModeButton.isEnabled = true
-                }
-                
-                if self.HDRVideoMode == .on {
-                    do {
-                        try self.videoDeviceInput.device.lockForConfiguration()
-                        self.videoDeviceInput.device.activeFormat = self.selectedMovieMode10BitDeviceFormat!
-                        print("Setting 'x420' format \(String(describing: self.selectedMovieMode10BitDeviceFormat)) for video recording")
-                        self.videoDeviceInput.device.unlockForConfiguration()
-                    } catch {
-                        print("Could not lock device for configuration: \(error)")
-                    }
-                }
-            }
-            
+
             if let connection = videoOutput.connection(with: .video) {
                 if connection.isVideoStabilizationSupported {
                     connection.preferredVideoStabilizationMode = .auto
@@ -400,8 +379,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     @IBAction private func changeCamera(_ cameraButton: UIButton) {
         cameraButton.isEnabled = false
         recordButton.isEnabled = false
-        HDRVideoModeButton.isEnabled = false
-        self.selectedMovieMode10BitDeviceFormat = nil
         
         sessionQueue.async {
             let currentVideoDevice = self.videoDeviceInput.device
@@ -449,29 +426,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                             self.session.sessionPreset = .hd4K3840x2160
                         } else {
                             self.session.sessionPreset = .high
-                        }
-
-                        self.selectedMovieMode10BitDeviceFormat = self.tenBitVariantOfFormat(activeFormat: self.videoDeviceInput.device.activeFormat)
-                        
-                        if self.selectedMovieMode10BitDeviceFormat != nil {
-                            DispatchQueue.main.async {
-                                self.HDRVideoModeButton.isEnabled = true
-                            }
-                            
-                            if self.HDRVideoMode == .on {
-                                do {
-                                    try self.videoDeviceInput.device.lockForConfiguration()
-                                    self.videoDeviceInput.device.activeFormat = self.selectedMovieMode10BitDeviceFormat!
-                                    print("Setting 'x420' format \(String(describing: self.selectedMovieMode10BitDeviceFormat)) for video recording")
-                                    self.videoDeviceInput.device.unlockForConfiguration()
-                                } catch {
-                                    print("Could not lock device for configuration: \(error)")
-                                }
-                            }
-                        }
-                        
-                        if connection.isVideoStabilizationSupported {
-                            connection.preferredVideoStabilizationMode = .auto
                         }
                     }
 
@@ -524,84 +478,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             }
         }
     }
-    
-    func tenBitVariantOfFormat(activeFormat: AVCaptureDevice.Format) -> AVCaptureDevice.Format? {
-        let formats = self.videoDeviceInput.device.formats
-        let formatIndex = formats.firstIndex(of: activeFormat)!
-        
-        let activeDimensions = CMVideoFormatDescriptionGetDimensions(activeFormat.formatDescription)
-        let activeMaxFrameRate = activeFormat.videoSupportedFrameRateRanges.last?.maxFrameRate
-        let activePixelFormat = CMFormatDescriptionGetMediaSubType(activeFormat.formatDescription)
-        
-        /*
-         AVCaptureDeviceFormats are sorted from smallest to largest in resolution and frame rate.
-         For each resolution and max frame rate there's a cluster of formats that only differ in pixelFormatType.
-         Here, we're looking for an 'x420' variant of the current activeFormat.
-        */
-        if activePixelFormat != kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange {
-            // Current activeFormat is not a 10-bit HDR format, find its 10-bit HDR variant.
-            for index in formatIndex + 1..<formats.count {
-                let format = formats[index]
-                let dimensions = CMVideoFormatDescriptionGetDimensions(format.formatDescription)
-                let maxFrameRate = format.videoSupportedFrameRateRanges.last?.maxFrameRate
-                let pixelFormat = CMFormatDescriptionGetMediaSubType(format.formatDescription)
-                
-                // Don't advance beyond the current format cluster
-                if activeMaxFrameRate != maxFrameRate || activeDimensions.width != dimensions.width || activeDimensions.height != dimensions.height {
-                    break
-                }
-                
-                if pixelFormat == kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange {
-                    return format
-                }
-            }
-        } else {
-            return activeFormat
-        }
-        
-        return nil
-    }
 
-    private var selectedMovieMode10BitDeviceFormat: AVCaptureDevice.Format?
-    
-    private enum HDRVideoMode {
-        case on
-        case off
-    }
-
-    private var HDRVideoMode: HDRVideoMode = .on
-    
-    @IBOutlet private weak var HDRVideoModeButton: UIButton!
-    
-    @IBAction private func toggleHDRVideoMode(_ HDRVideoModeButton: UIButton) {
-        sessionQueue.async {
-            self.HDRVideoMode = (self.HDRVideoMode == .on) ? .off : .on
-            let HDRVideoMode = self.HDRVideoMode
-            
-            DispatchQueue.main.async {
-                if HDRVideoMode == .on {
-                    do {
-                        try self.videoDeviceInput.device.lockForConfiguration()
-                        self.videoDeviceInput.device.activeFormat = self.selectedMovieMode10BitDeviceFormat!
-                        self.videoDeviceInput.device.unlockForConfiguration()
-                    } catch {
-                        print("Could not lock device for configuration: \(error)")
-                    }
-                    self.HDRVideoModeButton.setTitle("HDR On", for: .normal)
-                } else {
-                    self.session.beginConfiguration()
-                    self.session.sessionPreset = .high
-                    self.session.commitConfiguration()
-                    self.HDRVideoModeButton.setTitle("HDR Off", for: .normal)
-                }
-            }
-        }
-    }
-    
-    private var inProgressLivePhotoCapturesCount = 0
-    
-    @IBOutlet var capturingLivePhotoLabel: UILabel!
-    
     // MARK: Recording Movies
     
     private var backgroundRecordingID: UIBackgroundTaskIdentifier?
