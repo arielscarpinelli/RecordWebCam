@@ -2,6 +2,10 @@ import Network
 import CoreMedia
 import Foundation // Needed for Data conversion and dispatchMain
 
+protocol ConnectionDelegate {
+    func onDisconnect()
+}
+
 // --- Configuration ---
 let port: NWEndpoint.Port = 4747
 
@@ -11,10 +15,11 @@ class TCPConnection {
     var listener: NWListener?
     private var connectionsByID: [Int: ServerConnection] = [:] // Keep track of connections
     private var nextConnectionID: Int = 0
+    var delegate: ConnectionDelegate?
     
-    var isConnected: Bool {
+    var isSendingVideo: Bool {
         get {
-            return !connectionsByID.isEmpty
+            return connectionsByID.values.contains { c in c.sendVideo }
         }
     }
 
@@ -40,8 +45,6 @@ class TCPConnection {
             print("Listener ready on port \(listener!.port!)")
         case .failed(let error):
             print("Listener failed with error: \(error.localizedDescription)")
-            // Potentially try restarting or exit
-            exit(EXIT_FAILURE)
         case .cancelled:
             print("Listener cancelled.")
         default:
@@ -78,6 +81,7 @@ class TCPConnection {
     private func connectionDidStop(_ connection: ServerConnection) {
         connectionsByID.removeValue(forKey: connection.id)
         print("Removed connection \(connection.id). Total connections: \(connectionsByID.count)")
+        delegate?.onDisconnect()
     }
 
     // Stop the listener

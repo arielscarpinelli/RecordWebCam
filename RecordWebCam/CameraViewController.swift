@@ -10,20 +10,18 @@ import AVFoundation
 import Photos
 import VideoToolbox
 
-class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDelegate
+class CameraViewController: UIViewController, ConnectionDelegate {
     
     private var spinner: UIActivityIndicatorView!
     
-    var windowOrientation: UIInterfaceOrientation {
-        return view.window?.windowScene?.interfaceOrientation ?? .unknown
-    }
-	
     private var connection: TCPConnection = .init()
     
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        connection.delegate = self
         
         ipAddress.text = getBestIpAddress()
         
@@ -33,7 +31,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         
         // Set up the video preview view.
         previewView.session = session
-		
+        
         /*
          Check the video authorization status. Video access is required and audio
          access is optional. If the user denies audio access, AVCam won't
@@ -167,17 +165,53 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         
+        let deviceOrientation = UIDevice.current.orientation
+        guard let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation),
+              deviceOrientation.isPortrait || deviceOrientation.isLandscape else {
+                return
+        }
+        
         if let videoPreviewLayerConnection = previewView.videoPreviewLayer.connection {
-            let deviceOrientation = UIDevice.current.orientation
-            guard let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation),
-                deviceOrientation.isPortrait || deviceOrientation.isLandscape else {
-                    return
-            }
-            
             videoPreviewLayerConnection.videoOrientation = newVideoOrientation
+        }
+            
+        if let connection = videoOutput?.connection(with: .video) {
+            if connection.videoOrientation.isLandscape != newVideoOrientation.isLandscape {
+                delayedOrientation = true
+                applyDelayedOrientation()
+            } else {
+                delayedOrientation = false
+                connection.videoOrientation = newVideoOrientation
+            }
         }
     }
     
+    var delayedOrientation: Bool = false
+    
+    func applyDelayedOrientation() {
+        
+        guard delayedOrientation, !isRecording, !connection.isSendingVideo,
+            let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) else {
+            return
+        }
+        
+        if let connection = videoOutput?.connection(with: .video) {
+            if connection.videoOrientation.isLandscape != newVideoOrientation.isLandscape {
+                sessionQueue.async {
+                    self.setupVideoToolboxEncoder(isLandscape: newVideoOrientation.isLandscape)
+                }
+            }
+            connection.videoOrientation = newVideoOrientation
+        }
+
+        delayedOrientation = false
+        
+    }
+    
+    func onDisconnect() {
+        applyDelayedOrientation()
+    }
+
     // MARK: Session Management
     
     private enum SessionSetupResult {
@@ -212,6 +246,13 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         } else {
             session.sessionPreset = .high
         }
+        
+        /*
+         Use the window scene's orientation as the initial video orientation. Subsequent orientation changes are
+         handled by CameraViewController.viewWillTransition(to:with:).
+         */
+        let initialVideoOrientation: AVCaptureVideoOrientation =
+            AVCaptureVideoOrientation(interfaceOrientation: UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .unknown) ?? .portrait
         
         // Add video input.
         do {
@@ -256,22 +297,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                 self.videoDeviceInput = videoDeviceInput
                 
                 DispatchQueue.main.async {
-                    /*
-                     Dispatch video streaming to the main queue because AVCaptureVideoPreviewLayer is the backing layer for PreviewView.
-                     You can manipulate UIView only on the main thread.
-                     Note: As an exception to the above rule, it's not necessary to serialize video orientation changes
-                     on the AVCaptureVideoPreviewLayer’s connection with other session manipulation.
-                     
-                     Use the window scene's orientation as the initial video orientation. Subsequent orientation changes are
-                     handled by CameraViewController.viewWillTransition(to:with:).
-                     */
-                    var initialVideoOrientation: AVCaptureVideoOrientation = .portrait
-                    if self.windowOrientation != .unknown {
-                        if let videoOrientation = AVCaptureVideoOrientation(interfaceOrientation: self.windowOrientation) {
-                            initialVideoOrientation = videoOrientation
-                        }
-                    }
-                    
                     self.previewView.videoPreviewLayer.connection?.videoOrientation = initialVideoOrientation
                 }
             } else {
@@ -318,16 +343,13 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
             self.session.beginConfiguration()
             self.session.addOutput(videoOutput)
 
-            if let connection = videoOutput.connection(with: .video) {
-                if connection.isVideoStabilizationSupported {
-                    connection.preferredVideoStabilizationMode = .auto
-                }
-            }
             self.session.commitConfiguration()
             
             self.videoOutput = videoOutput
             
-            setupVideoToolboxEncoder()
+            videoOutput.connection(with: .video)?.videoOrientation = initialVideoOrientation
+
+            setupVideoToolboxEncoder(isLandscape: initialVideoOrientation.isLandscape)
 
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
@@ -426,6 +448,9 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                             self.session.sessionPreset = .hd4K3840x2160
                         } else {
                             self.session.sessionPreset = .high
+                        }
+                        if let orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) {
+                            connection.videoOrientation = orientation
                         }
                     }
 
@@ -708,6 +733,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         do {
             // Create asset writer
             videoWriter = try AVAssetWriter(outputURL: url, fileType: .mov)
+            videoWriter?.shouldOptimizeForNetworkUse = true
 
             videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
             videoWriterInput?.expectsMediaDataInRealTime = true
@@ -777,6 +803,7 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
                         }
                     }
                 }
+                applyDelayedOrientation()
             }
             
             videoWriter = nil
@@ -786,9 +813,11 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
     }
 
     // MARK: - VideoToolbox Encoder Setup
-    private func setupVideoToolboxEncoder() {
+    private func setupVideoToolboxEncoder(isLandscape: Bool) {
         // Create compression session
         var session: VTCompressionSession?
+        
+        teardownVideoToolboxEncoder()
         
         // Create callback for encoded frames
         encodedDataCallback = { outputCallbackRefCon, sourceFrameRefCon, status, flags, sampleBuffer in
@@ -799,8 +828,8 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         }
         
         // Create encoder session (4K resolution)
-        let width = 3840
-        let height = 2160
+        let width = isLandscape ? 3840 : 2160
+        let height = isLandscape ? 2160 : 3840
         let status = VTCompressionSessionCreate(
             allocator: kCFAllocatorDefault,
             width: Int32(width),
@@ -865,8 +894,6 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
         recordingStopTime = timestamp
 
         if input.isReadyForMoreMediaData {
-            print("saving frame")
-            
             let adjustedTime = CMTimeSubtract(timestamp, recordingStartTime ?? CMTime.zero)
 
             var timingInfo = CMSampleTimingInfo(duration: sampleBuffer.duration, presentationTimeStamp: adjustedTime, decodeTimeStamp: .invalid)
@@ -919,14 +946,14 @@ class CameraViewController: UIViewController { // AVCaptureFileOutputRecordingDe
 extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
-        if !isRecording && !self.connection.isConnected {
+        if !isRecording && !self.connection.isSendingVideo {
             return
         }
 
         guard let compressionSession = compressionSession,
         let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
                 
-        VTCompressionSessionEncodeFrame(
+        let status = VTCompressionSessionEncodeFrame(
             compressionSession,
             imageBuffer: pixelBuffer,
             presentationTimeStamp: CMSampleBufferGetPresentationTimeStamp(sampleBuffer),
@@ -935,6 +962,11 @@ extension CameraViewController: AVCaptureVideoDataOutputSampleBufferDelegate {
             sourceFrameRefcon: nil,
             infoFlagsOut: nil
         )
+        
+        if status != noErr {
+            print("Failed to encode frame: \(status)")
+        }
+
     }
 }
 
@@ -956,6 +988,12 @@ extension AVCaptureVideoOrientation {
         case .landscapeLeft: self = .landscapeLeft
         case .landscapeRight: self = .landscapeRight
         default: return nil
+        }
+    }
+    
+    var isLandscape: Bool {
+        get {
+            return self == .landscapeLeft || self == .landscapeRight
         }
     }
 }

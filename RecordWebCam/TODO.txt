@@ -1,4 +1,3 @@
-- el video esta mal orientado
 - refresh network interfaces
 - kbps meter when connected
 - wake lock
