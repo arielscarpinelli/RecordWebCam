@@ -1,8 +1,5 @@
-- refresh network interfaces
 - kbps meter when connected
-- wake lock
 - some crap with the timing, video starts frozen/broken
-- record start sound
 - sonido
 - pinch
 - remote control

@@ -23,7 +23,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         
         connection.delegate = self
         
-        ipAddress.text = getBestIpAddress()
+        updateIpAddressLabel()
         
         // Disable the UI. Enable the UI later, if and only if the session starts running.
         cameraButton.isEnabled = false
@@ -139,6 +139,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         
         connection.accept()
+        UIApplication.shared.isIdleTimerDisabled = true
     }
     
     override func viewWillDisappear(_ animated: Bool) {
@@ -151,7 +152,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         
         connection.close()
-        
+
+        UIApplication.shared.isIdleTimerDisabled = false
+
         super.viewWillDisappear(animated)
     }
     
@@ -216,6 +219,27 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     func onDisconnect() {
         applyDelayedOrientation()
+    }
+    
+    func updateIpAddressLabel() {
+        ipAddress.text = getBestIpAddress()
+    }
+    
+    private var audioPlayer: AVAudioPlayer?
+
+    func playSound(soundName: String) {
+        guard let asset = NSDataAsset(name: soundName) else {
+            print("Could not find sound file: \(soundName)")
+            return
+        }
+
+        do {
+            audioPlayer = try AVAudioPlayer(data: asset.data)
+            audioPlayer?.prepareToPlay()
+            audioPlayer?.play()
+        } catch {
+            print("Error loading or playing sound: \(error)")
+        }
     }
 
     // MARK: Session Management
@@ -613,6 +637,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                                                selector: #selector(sessionInterruptionEnded),
                                                name: .AVCaptureSessionInterruptionEnded,
                                                object: session)
+        
+        UIDevice.current.isBatteryMonitoringEnabled = true
+        NotificationCenter.default.addObserver(self,
+                                               selector: #selector(batteryStateDidChange),
+                                               name: UIDevice.batteryStateDidChangeNotification,
+                                               object: nil)
+
     }
     
     private func removeObservers() {
@@ -739,6 +770,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         connection.accept()
     }
+    
+    // We cannot detect the USB being connected, but the battery state changes is a cue
+    @objc private func batteryStateDidChange(_ notification: Notification) {        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
+            self.updateIpAddressLabel()
+        }
+    }
 
     // MARK: - Properties
     private var isRecording: Bool = false
@@ -806,6 +844,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             videoWriter?.startSession(atSourceTime: CMTime.zero)
             
             isRecording = true
+            
+            playSound(soundName: "start")
 
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
@@ -847,6 +887,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                             } else if let error = error {
                                 self.showErrorAndStopRecording("Error saving video: \(error). You can still check it in the Files app")
                             }
+                            self.playSound(soundName: "stop")
                             DispatchQueue.main.async {
                                 // Only enable the ability to change camera if the device has more than one camera.
                                 self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
