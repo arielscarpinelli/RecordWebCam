@@ -4,8 +4,6 @@
 - some crap with the timing, video starts frozen/broken
 - record start sound
 - sonido
-- sacar HDR
-- zoom
 - pinch
 - remote control
 - cambiar iconos

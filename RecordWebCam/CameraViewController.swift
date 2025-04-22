@@ -74,8 +74,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          take a long time. Dispatch session setup to the sessionQueue, so
          that the main queue isn't blocked, which keeps the UI responsive.
          */
+        let orientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .unknown
         sessionQueue.async {
-            self.configureSession()
+            self.configureSession(orientation: orientation)
         }
         DispatchQueue.main.async {
             self.spinner = UIActivityIndicatorView(style: .large)
@@ -174,7 +175,12 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         if let videoPreviewLayerConnection = previewView.videoPreviewLayer.connection {
             videoPreviewLayerConnection.videoOrientation = newVideoOrientation
         }
+        
+        setVideoOrientation(newVideoOrientation)
             
+    }
+    
+    func setVideoOrientation(_ newVideoOrientation: AVCaptureVideoOrientation) {
         if let connection = videoOutput?.connection(with: .video) {
             if connection.videoOrientation.isLandscape != newVideoOrientation.isLandscape {
                 delayedOrientation = true
@@ -234,7 +240,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     // Call this on the session queue.
     /// - Tag: ConfigureSession
-    private func configureSession() {
+    private func configureSession(orientation: UIInterfaceOrientation) {
         if setupResult != .success {
             return
         }
@@ -252,7 +258,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          handled by CameraViewController.viewWillTransition(to:with:).
          */
         let initialVideoOrientation: AVCaptureVideoOrientation =
-            AVCaptureVideoOrientation(interfaceOrientation: UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .unknown) ?? .portrait
+            AVCaptureVideoOrientation(interfaceOrientation: interfaceOrientation) ?? .portrait
         
         // Add video input.
         do {
@@ -391,7 +397,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     @IBOutlet private weak var ipAddress: UILabel!
 
     @IBOutlet private weak var cameraButton: UIButton!
-    
+
+    @IBOutlet private weak var zoomButton: UIButton!
+
     @IBOutlet private weak var cameraUnavailableLabel: UILabel!
     
     private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera, .builtInDualWideCamera],
@@ -403,10 +411,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         recordButton.isEnabled = false
         
         sessionQueue.async {
-            let currentVideoDevice = self.videoDeviceInput.device
-            let currentPosition = currentVideoDevice.position
+            let currentPosition = self.videoDeviceInput.device.position
 
-            let backVideoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera],
+            let backVideoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera],
                                                                                    mediaType: .video, position: .back)
             let frontVideoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTrueDepthCamera, .builtInWideAngleCamera],
                                                                                     mediaType: .video, position: .front)
@@ -424,45 +431,91 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 newVideoDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back)
             }
             
-            if let videoDevice = newVideoDevice {
-                do {
-                    let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
-                    
-                    self.session.beginConfiguration()
-                    
-                    // Remove the existing device input first, because AVCaptureSession doesn't support
-                    // simultaneous use of the rear and front cameras.
-                    self.session.removeInput(self.videoDeviceInput)
-                    
+            self.setVideoDevice(newVideoDevice)
+        }
+    }
+    
+    private func setVideoDevice(_ newVideoDevice: AVCaptureDevice?) {
+        
+        let currentVideoDevice = self.videoDeviceInput.device
+        
+        if let videoDevice = newVideoDevice {
+            do {
+                let videoDeviceInput = try AVCaptureDeviceInput(device: videoDevice)
+                
+                self.session.beginConfiguration()
+                
+                // Remove the existing device input first, because AVCaptureSession doesn't support
+                // simultaneous use of the rear and front cameras.
+                self.session.removeInput(self.videoDeviceInput)
+                
+                var done = false
+                while !done {
                     if self.session.canAddInput(videoDeviceInput) {
                         NotificationCenter.default.removeObserver(self, name: .AVCaptureDeviceSubjectAreaDidChange, object: currentVideoDevice)
                         NotificationCenter.default.addObserver(self, selector: #selector(self.subjectAreaDidChange), name: .AVCaptureDeviceSubjectAreaDidChange, object: videoDeviceInput.device)
                         
                         self.session.addInput(videoDeviceInput)
                         self.videoDeviceInput = videoDeviceInput
+                        done = true
                     } else {
-                        self.session.addInput(self.videoDeviceInput)
-                    }
-                    if let connection = self.videoOutput?.connection(with: .video) {
-                        if self.session.canSetSessionPreset(.hd4K3840x2160) == true {
-                            self.session.sessionPreset = .hd4K3840x2160
-                        } else {
+                        // front camera may not be able to handle 4k
+                        if self.session.sessionPreset != .high {
                             self.session.sessionPreset = .high
-                        }
-                        if let orientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) {
-                            connection.videoOrientation = orientation
+                        } else {
+                            print("unable to change camera")
+                            self.session.addInput(self.videoDeviceInput)
+                            done = true
                         }
                     }
-
-                    self.session.commitConfiguration()
-                } catch {
-                    print("Error occurred while creating video device input: \(error)")
                 }
+                
+                if self.session.canSetSessionPreset(.hd4K3840x2160) == true {
+                    self.session.sessionPreset = .hd4K3840x2160
+                } else {
+                    self.session.sessionPreset = .high
+                }
+                
+                if let newOrientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) {
+                    self.setVideoOrientation(newOrientation)
+                }
+                
+                self.session.commitConfiguration()
+            } catch {
+                print("Error occurred while creating video device input: \(error)")
             }
-            
-            DispatchQueue.main.async {
-                self.cameraButton.isEnabled = true
-                self.recordButton.isEnabled = self.videoOutput != nil
+        }
+        
+        DispatchQueue.main.async {
+            self.cameraButton.isEnabled = true
+            self.recordButton.isEnabled = self.videoOutput != nil
+        }
+    }
+    
+    @IBAction private func changeZoom(_ zoomButton: UIButton) {
+        
+        let currentZoom = Int(zoomButton.currentTitle?.prefix(1) ?? "1") ?? 1
+
+        sessionQueue.async {
+            let device = self.videoDeviceInput.device
+
+            do {
+                try device.lockForConfiguration()
+                
+                let newZoom = device.virtualDeviceSwitchOverVideoZoomFactors
+                    .map { Int(truncating: round($0.doubleValue) as NSNumber) }
+                    .filter { $0 > currentZoom }
+                    .first ?? 1
+                
+                DispatchQueue.main.async {
+                    zoomButton.setTitle("\(newZoom)x", for: zoomButton.state)
+                }
+                
+                device.videoZoomFactor = CGFloat(newZoom)
+                
+                device.unlockForConfiguration()
+            } catch {
+                print("Could not lock device for configuration: \(error)")
             }
         }
     }
@@ -523,6 +576,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             DispatchQueue.main.async {
                 // Only enable the ability to change camera if the device has more than one camera.
                 self.cameraButton.isEnabled = isSessionRunning && self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+                self.zoomButton.isEnabled = isSessionRunning && self.videoDeviceInput.device.position == .back
                 self.recordButton.isEnabled = isSessionRunning && self.videoOutput != nil
             }
         }
