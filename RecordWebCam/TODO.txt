@@ -1,8 +1,10 @@
+- fake zoom 2x
 - kbps meter when connected
 - some crap with the timing, video starts frozen/broken
 - sonido
 - pinch
 - remote control
+- pausa
 - cambiar iconos
 - h265 (opcional)
 - 60fps

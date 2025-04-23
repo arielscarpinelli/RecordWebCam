@@ -15,6 +15,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var spinner: UIActivityIndicatorView!
     
     private var connection: TCPConnection = .init()
+    private var everRotated = false
     
     // MARK: View Controller Life Cycle
     
@@ -74,9 +75,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          take a long time. Dispatch session setup to the sessionQueue, so
          that the main queue isn't blocked, which keeps the UI responsive.
          */
-        let orientation = UIApplication.shared.windows.first?.windowScene?.interfaceOrientation ?? .unknown
         sessionQueue.async {
-            self.configureSession(orientation: orientation)
+            self.configureSession()
         }
         DispatchQueue.main.async {
             self.spinner = UIActivityIndicatorView(style: .large)
@@ -163,7 +163,20 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
-        return .all
+        if #available(iOS 16.0, *) {
+            return (everRotated || !UIDevice.current.orientation.isFlat) ? .all : .landscapeRight
+        } else {
+            return .all
+        }
+    }
+    
+    @objc private func deviceOrientationDidChange(_ notification: Notification) {
+        if #available(iOS 16.0, *) {
+            if !everRotated && !UIDevice.current.orientation.isFlat {
+                everRotated = true
+                setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+        }
     }
     
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
@@ -264,7 +277,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     // Call this on the session queue.
     /// - Tag: ConfigureSession
-    private func configureSession(orientation: UIInterfaceOrientation) {
+    private func configureSession() {
         if setupResult != .success {
             return
         }
@@ -281,9 +294,21 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          Use the window scene's orientation as the initial video orientation. Subsequent orientation changes are
          handled by CameraViewController.viewWillTransition(to:with:).
          */
-        let initialVideoOrientation: AVCaptureVideoOrientation =
-            AVCaptureVideoOrientation(interfaceOrientation: interfaceOrientation) ?? .portrait
         
+        let deviceOrientation = DispatchQueue.main.sync {
+            let orientation = UIDevice.current.orientation
+            if (orientation.isFlat) {
+                if #available(iOS 16.0, *) {
+                    UIView.performWithoutAnimation {
+                        setNeedsUpdateOfSupportedInterfaceOrientations()
+                    }
+                }
+            }
+            return orientation
+        }
+        let initialVideoOrientation: AVCaptureVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation) ?? .landscapeRight
+            // faceUp and down we consider landscape
+
         // Add video input.
         do {
             var defaultVideoDevice: AVCaptureDevice?
@@ -644,6 +669,12 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                                                name: UIDevice.batteryStateDidChangeNotification,
                                                object: nil)
 
+        NotificationCenter.default.addObserver(
+                    self,
+                    selector: #selector(deviceOrientationDidChange(_:)),
+                    name: UIDevice.orientationDidChangeNotification,
+                    object: nil // Observe notifications from any object
+                )
     }
     
     private func removeObservers() {
