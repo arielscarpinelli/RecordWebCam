@@ -29,6 +29,12 @@ extension UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
             let bounds = CGRect(origin: .zero, size: size)
+
+            // White border
+            UIColor.white.setFill()
+            ctx.cgContext.fillEllipse(in: bounds)
+
+            // Red inner square
             let squareSize = size.width / 2.0
             let squareRect = CGRect(x: (size.width - squareSize) / 2.0,
                                     y: (size.height - squareSize) / 2.0,
