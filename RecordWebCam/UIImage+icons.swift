@@ -12,15 +12,19 @@ extension UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
             let bounds = CGRect(origin: .zero, size: size)
+            let lineWidth: CGFloat = 2
 
             // White border
-            UIColor.white.setFill()
-            ctx.cgContext.fillEllipse(in: bounds)
+            let borderRect = bounds.insetBy(dx: lineWidth, dy: lineWidth)
+            ctx.cgContext.setStrokeColor(UIColor.white.cgColor)
+            ctx.cgContext.setLineWidth(lineWidth)
+            ctx.cgContext.strokeEllipse(in: borderRect)
 
             // Red inner circle
-            let innerBounds = bounds.insetBy(dx: 2, dy: 2)
-            UIColor.red.setFill()
-            ctx.cgContext.fillEllipse(in: innerBounds)
+            let gap: CGFloat = lineWidth
+            let redCircleRect = borderRect.insetBy(dx: gap, dy: gap)
+            ctx.cgContext.setFillColor(UIColor.red.cgColor)
+            ctx.cgContext.fillEllipse(in: redCircleRect)
         }
         return image
     }
@@ -29,19 +33,24 @@ extension UIImage {
         let renderer = UIGraphicsImageRenderer(size: size)
         let image = renderer.image { ctx in
             let bounds = CGRect(origin: .zero, size: size)
+            let lineWidth: CGFloat = 2
 
             // White border
-            UIColor.white.setFill()
-            ctx.cgContext.fillEllipse(in: bounds)
+            let borderRect = bounds.insetBy(dx: lineWidth, dy: lineWidth)
+            ctx.cgContext.setStrokeColor(UIColor.white.cgColor)
+            ctx.cgContext.setLineWidth(lineWidth)
+            ctx.cgContext.strokeEllipse(in: borderRect)
 
             // Red inner square
-            let squareSize = size.width / 2.0
-            let squareRect = CGRect(x: (size.width - squareSize) / 2.0,
-                                    y: (size.height - squareSize) / 2.0,
+            let gap: CGFloat = lineWidth
+            let innerBounds = borderRect.insetBy(dx: gap, dy: gap)
+            let squareSize = innerBounds.width * 0.85
+            let squareRect = CGRect(x: innerBounds.origin.x + (innerBounds.width - squareSize) / 2,
+                                    y: innerBounds.origin.y + (innerBounds.height - squareSize) / 2,
                                     width: squareSize,
                                     height: squareSize)
 
-            UIColor.red.setFill()
+            ctx.cgContext.setFillColor(UIColor.red.cgColor)
             ctx.cgContext.fill(squareRect)
         }
         return image
