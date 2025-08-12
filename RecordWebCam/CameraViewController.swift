@@ -17,6 +17,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var connection: TCPConnection = .init()
     private var everRotated = false
     
+    private var actionBar: UIStackView!
+    private var actionBarTrailingConstraint: NSLayoutConstraint!
+    private var actionBarLeadingConstraint: NSLayoutConstraint!
+
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
@@ -94,6 +98,19 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             self.showErrorAndStopRecording("unknown error initializing connection \(error)")
         }
 
+        // Find the action bar and its constraints
+        actionBar = recordButton.superview as? UIStackView
+
+        for constraint in view.constraints {
+            if let firstItem = constraint.firstItem as? UIStackView,
+               firstItem === actionBar,
+               constraint.firstAttribute == .trailing {
+                actionBarTrailingConstraint = constraint
+                break
+            }
+        }
+
+        actionBarLeadingConstraint = actionBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -188,6 +205,17 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         super.viewWillTransition(to: size, with: coordinator)
         
         let deviceOrientation = UIDevice.current.orientation
+
+        if deviceOrientation == .landscapeRight {
+            actionBarTrailingConstraint.isActive = false
+            actionBarLeadingConstraint.isActive = true
+        } else {
+            actionBarLeadingConstraint.isActive = false
+            if actionBarTrailingConstraint != nil {
+                actionBarTrailingConstraint.isActive = true
+            }
+        }
+
         guard let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation),
               deviceOrientation.isPortrait || deviceOrientation.isLandscape else {
                 return
