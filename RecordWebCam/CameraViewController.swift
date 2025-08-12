@@ -30,6 +30,11 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         cameraButton.isEnabled = false
         recordButton.isEnabled = false
         
+        let iconSize = CGSize(width: 60, height: 60)
+        let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+        recordButton.setImage(recordIcon, for: .normal)
+        recordButton.layer.cornerRadius = 0
+
         // Set up the video preview view.
         previewView.session = session
         
@@ -880,7 +885,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
 
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
-                self.recordButton.setImage(#imageLiteral(resourceName: "CaptureStop"), for: [])
+                let iconSize = CGSize(width: 60, height: 60)
+                let stopIcon = UIImage.stopIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+                self.recordButton.setImage(stopIcon, for: [])
             }
 
         } catch {
@@ -923,7 +930,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                                 // Only enable the ability to change camera if the device has more than one camera.
                                 self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
                                 self.recordButton.isEnabled = true
-                                self.recordButton.setImage(#imageLiteral(resourceName: "CaptureVideo"), for: [])
+                                let iconSize = CGSize(width: 60, height: 60)
+                                let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+                                self.recordButton.setImage(recordIcon, for: [])
                             }
 
                         }
