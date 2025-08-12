@@ -44,7 +44,7 @@ extension UIImage {
             // Red inner square
             let gap: CGFloat = lineWidth
             let innerBounds = borderRect.insetBy(dx: gap, dy: gap)
-            let squareSize = innerBounds.width * 0.85
+            let squareSize = innerBounds.width * 0.65
             let squareRect = CGRect(x: innerBounds.origin.x + (innerBounds.width - squareSize) / 2,
                                     y: innerBounds.origin.y + (innerBounds.height - squareSize) / 2,
                                     width: squareSize,
