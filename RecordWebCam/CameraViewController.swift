@@ -204,18 +204,20 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
         
-        let deviceOrientation = UIDevice.current.orientation
-
-        if deviceOrientation == .landscapeRight {
-            actionBarTrailingConstraint.isActive = false
-            actionBarLeadingConstraint.isActive = true
-        } else {
-            actionBarLeadingConstraint.isActive = false
-            if actionBarTrailingConstraint != nil {
-                actionBarTrailingConstraint.isActive = true
+        coordinator.animate(alongsideTransition: { _ in
+            let deviceOrientation = UIDevice.current.orientation
+            if deviceOrientation == .landscapeRight {
+                self.actionBarTrailingConstraint.isActive = false
+                self.actionBarLeadingConstraint.isActive = true
+            } else {
+                self.actionBarLeadingConstraint.isActive = false
+                if self.actionBarTrailingConstraint != nil {
+                    self.actionBarTrailingConstraint.isActive = true
+                }
             }
-        }
+        })
 
+        let deviceOrientation = UIDevice.current.orientation
         guard let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation),
               deviceOrientation.isPortrait || deviceOrientation.isLandscape else {
                 return
