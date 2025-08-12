@@ -484,7 +484,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
 
     @IBOutlet private weak var cameraUnavailableLabel: UILabel!
     
-    private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInWideAngleCamera, .builtInDualCamera, .builtInTrueDepthCamera, .builtInDualWideCamera],
+    private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera],
                                                                                mediaType: .video, position: .unspecified)
 
     /// - Tag: ChangeCamera
@@ -576,7 +576,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     @IBAction private func changeZoom(_ zoomButton: UIButton) {
         
-        let currentZoom = Int(zoomButton.currentTitle?.prefix(1) ?? "1") ?? 1
+        let currentZoom = CGFloat(Float(zoomButton.currentTitle?.dropLast() ?? "1.0") ?? 1.0)
 
         sessionQueue.async {
             let device = self.videoDeviceInput.device
@@ -584,16 +584,33 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             do {
                 try device.lockForConfiguration()
                 
-                let newZoom = device.virtualDeviceSwitchOverVideoZoomFactors
-                    .map { Int(truncating: round($0.doubleValue) as NSNumber) }
+                var mult:CGFloat = 1.0
+                if #available(iOS 18.0, *) {
+                    mult = device.displayVideoZoomFactorMultiplier
+                }
+
+                var availableZooms = device.virtualDeviceSwitchOverVideoZoomFactors
+                    .map { CGFloat($0.floatValue) * mult }
+                
+                var i = 0
+                while (i < availableZooms.endIndex && availableZooms[i] < 1) {
+                    i+=1
+                }
+                availableZooms.insert(1.0, at: i)
+                
+                if availableZooms.endIndex-1 >= 5 {
+                    availableZooms.insert(2.0, at: availableZooms.endIndex-1)
+                }
+
+                let newZoom = availableZooms
                     .filter { $0 > currentZoom }
-                    .first ?? 1
+                    .first ?? availableZooms.first!
                 
                 DispatchQueue.main.async {
-                    zoomButton.setTitle("\(newZoom)x", for: zoomButton.state)
+                    zoomButton.setTitle("\(String(format: "%.0f", newZoom))x", for: zoomButton.state)
                 }
                 
-                device.videoZoomFactor = CGFloat(newZoom)
+                device.videoZoomFactor = newZoom
                 
                 device.unlockForConfiguration()
             } catch {
