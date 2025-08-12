@@ -21,6 +21,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var actionBarTrailingConstraint: NSLayoutConstraint!
     private var actionBarLeadingConstraint: NSLayoutConstraint!
 
+    private var ipAddressLeadingConstraint: NSLayoutConstraint!
+    private var ipAddressTrailingConstraint: NSLayoutConstraint!
+
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
@@ -111,6 +114,22 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
 
         actionBarLeadingConstraint = actionBar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 10)
+
+        // Find the IP Address label's constraints
+        // Note: This is fragile and depends on the storyboard's structure.
+        // The leading constraint is only active in landscape, so we can only find it there.
+        // The trailing constraint is only active in portrait.
+        // We create a new trailing constraint for landscape right.
+        for constraint in view.constraints {
+            if let firstItem = constraint.firstItem as? UILabel,
+               firstItem === ipAddress,
+               constraint.firstAttribute == .leading {
+                ipAddressLeadingConstraint = constraint
+                break
+            }
+        }
+
+        ipAddressTrailingConstraint = ipAddress.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10)
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -209,10 +228,20 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             if deviceOrientation == .landscapeRight {
                 self.actionBarTrailingConstraint.isActive = false
                 self.actionBarLeadingConstraint.isActive = true
+
+                if self.ipAddressLeadingConstraint != nil {
+                    self.ipAddressLeadingConstraint.isActive = false
+                }
+                self.ipAddressTrailingConstraint.isActive = true
             } else {
                 self.actionBarLeadingConstraint.isActive = false
                 if self.actionBarTrailingConstraint != nil {
                     self.actionBarTrailingConstraint.isActive = true
+                }
+
+                self.ipAddressTrailingConstraint.isActive = false
+                if self.ipAddressLeadingConstraint != nil {
+                    self.ipAddressLeadingConstraint.isActive = true
                 }
             }
         })
