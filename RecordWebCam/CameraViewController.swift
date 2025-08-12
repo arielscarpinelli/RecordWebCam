@@ -339,7 +339,6 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     @IBOutlet private weak var previewView: PreviewView!
     
-    // Call this on the session queue.
     /// - Tag: ConfigureSession
     private func configureSession() {
         if setupResult != .success {
@@ -397,7 +396,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                     print("Failed to configure camera for 60fps: \(error)")
                 }
             }
-
+            
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
@@ -411,6 +410,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 session.commitConfiguration()
                 return
             }
+            resetZoom(videoDevice)
+
         } catch {
             print("Couldn't create video device input: \(error)")
             setupResult = .configurationFailed
@@ -584,11 +585,33 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             } catch {
                 print("Error occurred while creating video device input: \(error)")
             }
+            resetZoom(videoDevice);
         }
         
         DispatchQueue.main.async {
             self.cameraButton.isEnabled = true
             self.recordButton.isEnabled = self.videoOutput != nil
+        }
+    }
+
+    private func resetZoom(_ videoDevice: AVCaptureDevice) {
+        do {
+            try videoDevice.lockForConfiguration()
+            
+            var mult:CGFloat = 1.0
+            if #available(iOS 18.0, *) {
+                mult = videoDevice.displayVideoZoomFactorMultiplier
+            }
+            
+            videoDevice.videoZoomFactor = 1 / mult;
+            
+            videoDevice.unlockForConfiguration();
+            
+            DispatchQueue.main.async {
+                self.zoomButton.setTitle("1x", for:self.zoomButton.state);
+            }
+        } catch {
+            print("Failed to reset zoom: \(error)")
         }
     }
     
