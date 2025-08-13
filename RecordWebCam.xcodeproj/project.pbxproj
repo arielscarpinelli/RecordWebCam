@@ -17,6 +17,8 @@
 		963F354C2DB133A400B13793 /* TODO.txt in Resources */ = {isa = PBXBuildFile; fileRef = 963F354B2DB1339F00B13793 /* TODO.txt */; };
 		967980C82DB53D5F00C7DC4A /* TCPConnection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 967980C72DB53D5C00C7DC4A /* TCPConnection.swift */; };
 		96A6B6B22E4BA78400F89B6E /* UIImage+icons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A6B6B12E4BA78400F89B6E /* UIImage+icons.swift */; };
+		96A6B6B62E4CD11B00F89B6E /* SettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A6B6B42E4CD11B00F89B6E /* SettingsViewController.swift */; };
+		96A6B6B72E4CD11B00F89B6E /* UserSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96A6B6B52E4CD11B00F89B6E /* UserSettings.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,6 +36,8 @@
 		963F354E2DB1C4FA00B13793 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		967980C72DB53D5C00C7DC4A /* TCPConnection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TCPConnection.swift; sourceTree = "<group>"; };
 		96A6B6B12E4BA78400F89B6E /* UIImage+icons.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UIImage+icons.swift"; sourceTree = "<group>"; };
+		96A6B6B42E4CD11B00F89B6E /* SettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsViewController.swift; sourceTree = "<group>"; };
+		96A6B6B52E4CD11B00F89B6E /* UserSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSettings.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -74,6 +78,8 @@
 				7AA677141CFF765600B353FB /* AppDelegate.swift */,
 				7AA677281CFF7B5C00B353FB /* PreviewView.swift */,
 				7AA677161CFF765600B353FB /* CameraViewController.swift */,
+				96A6B6B42E4CD11B00F89B6E /* SettingsViewController.swift */,
+				96A6B6B52E4CD11B00F89B6E /* UserSettings.swift */,
 				963F354B2DB1339F00B13793 /* TODO.txt */,
 				7AA677181CFF765600B353FB /* Main.storyboard */,
 				7AA6771B1CFF765600B353FB /* Assets.xcassets */,
@@ -161,6 +167,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				7AA677291CFF7B5C00B353FB /* PreviewView.swift in Sources */,
+				96A6B6B62E4CD11B00F89B6E /* SettingsViewController.swift in Sources */,
+				96A6B6B72E4CD11B00F89B6E /* UserSettings.swift in Sources */,
 				967980C82DB53D5F00C7DC4A /* TCPConnection.swift in Sources */,
 				96A6B6B22E4BA78400F89B6E /* UIImage+icons.swift in Sources */,
 				7AA677171CFF765600B353FB /* CameraViewController.swift in Sources */,
