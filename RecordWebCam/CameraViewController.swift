@@ -1012,6 +1012,18 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
     }
 
+    private func finalizeRecordingUI() {
+        self.playSound(soundName: "stop")
+        DispatchQueue.main.async {
+            // Only enable the ability to change camera if the device has more than one camera.
+            self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+            self.recordButton.isEnabled = true
+            let iconSize = CGSize(width: 60, height: 60)
+            let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+            self.recordButton.setImage(recordIcon, for: [])
+        }
+    }
+
     private func stopRecording() {
         
         isRecording = false
@@ -1028,7 +1040,6 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 guard let self = self, let url = self.currentFileURL else { return }
 
                 if UserSettings.saveToCameraRoll {
-                    // Save to camera roll
                     PHPhotoLibrary.requestAuthorization { status in
                         if status == .authorized {
                             PHPhotoLibrary.shared().performChanges({
@@ -1042,29 +1053,14 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                                 } else if let error = error {
                                     self.showErrorAndStopRecording("Error saving video: \(error). You can still check it in the Files app")
                                 }
-                                self.playSound(soundName: "stop")
-                                DispatchQueue.main.async {
-                                    // Only enable the ability to change camera if the device has more than one camera.
-                                    self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-                                    self.recordButton.isEnabled = true
-                                    let iconSize = CGSize(width: 60, height: 60)
-                                    let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
-                                    self.recordButton.setImage(recordIcon, for: [])
-                                }
-
+                                self.finalizeRecordingUI()
                             }
+                        } else {
+                            self.finalizeRecordingUI()
                         }
                     }
                 } else {
-                    self.playSound(soundName: "stop")
-                    DispatchQueue.main.async {
-                        // Only enable the ability to change camera if the device has more than one camera.
-                        self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-                        self.recordButton.isEnabled = true
-                        let iconSize = CGSize(width: 60, height: 60)
-                        let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
-                        self.recordButton.setImage(recordIcon, for: [])
-                    }
+                    self.finalizeRecordingUI()
                 }
                 applyDelayedOrientation()
             }
