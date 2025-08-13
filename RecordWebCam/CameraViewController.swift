@@ -363,9 +363,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
 
         if UserSettings.forceLandscapeStart && CameraViewController.appHasLaunched {
-            // If forcing landscape, ignore the physical orientation and set it to landscape.
-            // We need to pick one, landscapeRight is a safe default.
-            deviceOrientation = .landscapeRight
+            deviceOrientation = .landscapeLeft
         }
 
         let initialVideoOrientation: AVCaptureVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation) ?? .landscapeRight
