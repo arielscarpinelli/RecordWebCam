@@ -28,6 +28,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var settingsButton: UIButton!
     private var settingsButtonLeadingConstraint: NSLayoutConstraint!
     private var settingsButtonTrailingConstraint: NSLayoutConstraint!
+    private var settingsButtonTopPortraitConstraint: NSLayoutConstraint!
+    private var settingsButtonTopLandscapeConstraint: NSLayoutConstraint!
 
     // MARK: View Controller Life Cycle
     
@@ -144,14 +146,14 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         view.addSubview(settingsButton)
         settingsButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let settingsButtonTopConstraint = settingsButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10)
+        // Create all potential constraints for the settings button
+        settingsButtonTopPortraitConstraint = settingsButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10)
+        settingsButtonTopLandscapeConstraint = settingsButton.topAnchor.constraint(equalTo: ipAddress.bottomAnchor, constant: 10)
         settingsButtonLeadingConstraint = settingsButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20)
         settingsButtonTrailingConstraint = settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20)
 
-        NSLayoutConstraint.activate([
-            settingsButtonTopConstraint,
-            settingsButtonTrailingConstraint // Active by default (for landscape left and portrait)
-        ])
+        // Set initial layout based on current orientation
+        updateLayout(for: UIDevice.current.orientation)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -260,40 +262,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         super.viewWillTransition(to: size, with: coordinator)
         
         coordinator.animate(alongsideTransition: { _ in
-            let deviceOrientation = UIDevice.current.orientation
-
-            // Action Bar
-            if deviceOrientation.isLandscape {
-                if deviceOrientation == .landscapeRight {
-                    self.actionBarTrailingConstraint.isActive = false
-                    self.actionBarLeadingConstraint.isActive = true
-                } else { // .landscapeLeft
-                    self.actionBarLeadingConstraint.isActive = false
-                    if self.actionBarTrailingConstraint != nil {
-                        self.actionBarTrailingConstraint.isActive = true
-                    }
-                }
-            }
-
-            // IP Address Label & Settings Button
-            if deviceOrientation == .landscapeLeft {
-                // IP: left, Settings: right
-                self.ipAddressTrailingConstraint.isActive = false
-                if self.ipAddressLeadingConstraint != nil {
-                    self.ipAddressLeadingConstraint.isActive = true
-                }
-                self.settingsButtonLeadingConstraint.isActive = false
-                self.settingsButtonTrailingConstraint.isActive = true
-            } else {
-                // Covers .landscapeRight, .portrait, .portraitUpsideDown
-                // IP: right, Settings: left
-                if self.ipAddressLeadingConstraint != nil {
-                    self.ipAddressLeadingConstraint.isActive = false
-                }
-                self.ipAddressTrailingConstraint.isActive = true
-                self.settingsButtonTrailingConstraint.isActive = false
-                self.settingsButtonLeadingConstraint.isActive = true
-            }
+            self.updateLayout(for: UIDevice.current.orientation)
         })
 
         let deviceOrientation = UIDevice.current.orientation
@@ -310,6 +279,56 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             
     }
     
+    private func updateLayout(for orientation: UIDeviceOrientation) {
+        // Deactivate all managed constraints before setting the new ones
+        actionBarLeadingConstraint.isActive = false
+        actionBarTrailingConstraint.isActive = false
+        ipAddressLeadingConstraint.isActive = false
+        ipAddressTrailingConstraint.isActive = false
+        settingsButtonLeadingConstraint.isActive = false
+        settingsButtonTrailingConstraint.isActive = false
+        settingsButtonTopPortraitConstraint.isActive = false
+        settingsButtonTopLandscapeConstraint.isActive = false
+
+        // Action Bar
+        if orientation.isLandscape {
+            if orientation == .landscapeRight {
+                actionBarTrailingConstraint.isActive = false
+                actionBarLeadingConstraint.isActive = true
+            } else { // .landscapeLeft or .unknown
+                actionBarLeadingConstraint.isActive = false
+                actionBarTrailingConstraint.isActive = true
+            }
+        }
+        // In portrait, the storyboard constraints for regular size class take over for the action bar.
+
+        // IP Address Label & Settings Button
+        if orientation == .landscapeLeft {
+            // IP: left, Settings: right, stacked below IP
+            ipAddressTrailingConstraint.isActive = false
+            ipAddressLeadingConstraint.isActive = true
+            settingsButtonLeadingConstraint.isActive = false
+            settingsButtonTrailingConstraint.isActive = true
+            settingsButtonTopPortraitConstraint.isActive = false
+            settingsButtonTopLandscapeConstraint.isActive = true
+        } else {
+            // Covers .landscapeRight, .portrait, .portraitUpsideDown
+            // IP: right, Settings: left, stacked below IP in landscape, top in portrait
+            ipAddressLeadingConstraint.isActive = false
+            ipAddressTrailingConstraint.isActive = true
+            settingsButtonTrailingConstraint.isActive = false
+            settingsButtonLeadingConstraint.isActive = true
+
+            if orientation.isLandscape {
+                settingsButtonTopPortraitConstraint.isActive = false
+                settingsButtonTopLandscapeConstraint.isActive = true
+            } else {
+                settingsButtonTopLandscapeConstraint.isActive = false
+                settingsButtonTopPortraitConstraint.isActive = true
+            }
+        }
+    }
+
     func setVideoOrientation(_ newVideoOrientation: AVCaptureVideoOrientation) {
         if let connection = videoOutput?.connection(with: .video) {
             if connection.videoOrientation.isLandscape != newVideoOrientation.isLandscape {
@@ -408,7 +427,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          handled by CameraViewController.viewWillTransition(to:with:).
          */
         
-        let deviceOrientation = DispatchQueue.main.sync {
+        var deviceOrientation = DispatchQueue.main.sync {
             let orientation = UIDevice.current.orientation
             if (orientation.isFlat) {
                 if #available(iOS 16.0, *) {
@@ -419,6 +438,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             }
             return orientation
         }
+
+        if UserSettings.forceLandscapeStart && CameraViewController.appHasLaunched {
+            // If forcing landscape, ignore the physical orientation and set it to landscape.
+            // We need to pick one, landscapeRight is a safe default.
+            deviceOrientation = .landscapeRight
+        }
+
         let initialVideoOrientation: AVCaptureVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation) ?? .landscapeRight
             // faceUp and down we consider landscape
 
