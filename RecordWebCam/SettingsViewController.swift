@@ -5,6 +5,7 @@ class SettingsViewController: UIViewController {
     let saveToCameraRollLabel: UILabel = {
         let label = UILabel()
         label.text = "Save to Camera Roll"
+        label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -20,6 +21,7 @@ class SettingsViewController: UIViewController {
     let forceLandscapeLabel: UILabel = {
         let label = UILabel()
         label.text = "Force Landscape Start"
+        label.textColor = .white
         label.translatesAutoresizingMaskIntoConstraints = false
         return label
     }()
@@ -35,7 +37,7 @@ class SettingsViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        view.backgroundColor = .white
+        view.backgroundColor = .black
         title = "Settings"
 
         setupNavigationBar()
@@ -47,6 +49,7 @@ class SettingsViewController: UIViewController {
     }
 
     private func setupNavigationBar() {
+        navigationController?.navigationBar.barStyle = .black
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(doneButtonTapped))
     }
 
