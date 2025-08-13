@@ -389,7 +389,6 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     @IBOutlet private weak var previewView: PreviewView!
     
-    // Call this on the session queue.
     /// - Tag: ConfigureSession
     private func configureSession() {
         if setupResult != .success {
@@ -425,22 +424,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
 
         // Add video input.
         do {
-            var defaultVideoDevice: AVCaptureDevice?
+            var defaultVideoDevice: AVCaptureDevice? =
+                videoDeviceDiscoverySession.devices.first
             
-            // Choose the back dual camera, if available, otherwise default to a wide angle camera.
-            
-            if let dualCameraDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back) {
-                defaultVideoDevice = dualCameraDevice
-            } else if let dualWideCameraDevice = AVCaptureDevice.default(.builtInDualWideCamera, for: .video, position: .back) {
-                // If a rear dual camera is not available, default to the rear dual wide camera.
-                defaultVideoDevice = dualWideCameraDevice
-            } else if let backCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
-                // If a rear dual wide camera is not available, default to the rear wide angle camera.
-                defaultVideoDevice = backCameraDevice
-            } else if let frontCameraDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front) {
-                // If the rear wide angle camera isn't available, default to the front wide angle camera.
-                defaultVideoDevice = frontCameraDevice
-            }
             guard let videoDevice = defaultVideoDevice else {
                 print("Default video device is unavailable.")
                 setupResult = .configurationFailed
@@ -460,7 +446,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                     print("Failed to configure camera for 60fps: \(error)")
                 }
             }
-
+            
             if session.canAddInput(videoDeviceInput) {
                 session.addInput(videoDeviceInput)
                 self.videoDeviceInput = videoDeviceInput
@@ -474,6 +460,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 session.commitConfiguration()
                 return
             }
+            resetZoom(videoDevice)
+
         } catch {
             print("Couldn't create video device input: \(error)")
             setupResult = .configurationFailed
@@ -590,8 +578,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 newVideoDevice = frontVideoDeviceDiscoverySession.devices.first
                 
             @unknown default:
-                print("Unknown capture position. Defaulting to back, dual-camera.")
-                newVideoDevice = AVCaptureDevice.default(.builtInDualCamera, for: .video, position: .back)
+                print("Unknown capture position. Defaulting to first discovered")
+                newVideoDevice = self.videoDeviceDiscoverySession.devices.first
             }
             
             self.setVideoDevice(newVideoDevice)
@@ -647,11 +635,33 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             } catch {
                 print("Error occurred while creating video device input: \(error)")
             }
+            resetZoom(videoDevice);
         }
         
         DispatchQueue.main.async {
             self.cameraButton.isEnabled = true
             self.recordButton.isEnabled = self.videoOutput != nil
+        }
+    }
+
+    private func resetZoom(_ videoDevice: AVCaptureDevice) {
+        do {
+            try videoDevice.lockForConfiguration()
+            
+            var mult:CGFloat = 1.0
+            if #available(iOS 18.0, *) {
+                mult = videoDevice.displayVideoZoomFactorMultiplier
+            }
+            
+            videoDevice.videoZoomFactor = 1 / mult;
+            
+            videoDevice.unlockForConfiguration();
+            
+            DispatchQueue.main.async {
+                self.zoomButton.setTitle("1x", for:self.zoomButton.state);
+            }
+        } catch {
+            print("Failed to reset zoom: \(error)")
         }
     }
     
@@ -670,16 +680,15 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                     mult = device.displayVideoZoomFactorMultiplier
                 }
 
-                var availableZooms = device.virtualDeviceSwitchOverVideoZoomFactors
+                var availableZooms = ([1] + device.virtualDeviceSwitchOverVideoZoomFactors)
                     .map { CGFloat($0.floatValue) * mult }
                 
                 var i = 0
                 while (i < availableZooms.endIndex && availableZooms[i] < 1) {
                     i+=1
                 }
-                availableZooms.insert(1.0, at: i)
                 
-                if availableZooms.endIndex-1 >= 5 {
+                if availableZooms[availableZooms.endIndex-1] > 3 {
                     availableZooms.insert(2.0, at: availableZooms.endIndex-1)
                 }
 
@@ -688,10 +697,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                     .first ?? availableZooms.first!
                 
                 DispatchQueue.main.async {
-                    zoomButton.setTitle("\(String(format: "%.0f", newZoom))x", for: zoomButton.state)
+                    zoomButton.setTitle("\(String(format: newZoom < 1 ? "%.1f": "%.0f", newZoom))x", for: zoomButton.state)
                 }
                 
-                device.videoZoomFactor = newZoom
+                device.videoZoomFactor = newZoom / mult
                 
                 device.unlockForConfiguration()
             } catch {
