@@ -24,6 +24,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var ipAddressLeadingConstraint: NSLayoutConstraint!
     private var ipAddressTrailingConstraint: NSLayoutConstraint!
 
+    private var settingsButton: UIButton!
+    private var settingsButtonLeadingConstraint: NSLayoutConstraint!
+    private var settingsButtonTrailingConstraint: NSLayoutConstraint!
+
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
@@ -130,6 +134,23 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
 
         ipAddressTrailingConstraint = ipAddress.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -10)
+
+        // Create and position the settings button
+        settingsButton = UIButton(type: .system)
+        settingsButton.addTarget(self, action: #selector(settingsButtonTapped), for: .touchUpInside)
+        settingsButton.setImage(UIImage(systemName: "gearshape.fill"), for: .normal)
+        settingsButton.tintColor = .white
+        view.addSubview(settingsButton)
+        settingsButton.translatesAutoresizingMaskIntoConstraints = false
+
+        let settingsButtonTopConstraint = settingsButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10)
+        settingsButtonLeadingConstraint = settingsButton.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 20)
+        settingsButtonTrailingConstraint = settingsButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -20)
+
+        NSLayoutConstraint.activate([
+            settingsButtonTopConstraint,
+            settingsButtonTrailingConstraint // Active by default (for landscape left and portrait)
+        ])
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -225,24 +246,38 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         
         coordinator.animate(alongsideTransition: { _ in
             let deviceOrientation = UIDevice.current.orientation
-            if deviceOrientation == .landscapeRight {
-                self.actionBarTrailingConstraint.isActive = false
-                self.actionBarLeadingConstraint.isActive = true
 
-                if self.ipAddressLeadingConstraint != nil {
-                    self.ipAddressLeadingConstraint.isActive = false
+            // Action Bar
+            if deviceOrientation.isLandscape {
+                if deviceOrientation == .landscapeRight {
+                    self.actionBarTrailingConstraint.isActive = false
+                    self.actionBarLeadingConstraint.isActive = true
+                } else { // .landscapeLeft
+                    self.actionBarLeadingConstraint.isActive = false
+                    if self.actionBarTrailingConstraint != nil {
+                        self.actionBarTrailingConstraint.isActive = true
+                    }
                 }
-                self.ipAddressTrailingConstraint.isActive = true
-            } else {
-                self.actionBarLeadingConstraint.isActive = false
-                if self.actionBarTrailingConstraint != nil {
-                    self.actionBarTrailingConstraint.isActive = true
-                }
+            }
 
+            // IP Address Label & Settings Button
+            if deviceOrientation == .landscapeLeft {
+                // IP: left, Settings: right
                 self.ipAddressTrailingConstraint.isActive = false
                 if self.ipAddressLeadingConstraint != nil {
                     self.ipAddressLeadingConstraint.isActive = true
                 }
+                self.settingsButtonLeadingConstraint.isActive = false
+                self.settingsButtonTrailingConstraint.isActive = true
+            } else {
+                // Covers .landscapeRight, .portrait, .portraitUpsideDown
+                // IP: right, Settings: left
+                if self.ipAddressLeadingConstraint != nil {
+                    self.ipAddressLeadingConstraint.isActive = false
+                }
+                self.ipAddressTrailingConstraint.isActive = true
+                self.settingsButtonTrailingConstraint.isActive = false
+                self.settingsButtonLeadingConstraint.isActive = true
             }
         })
 
@@ -889,6 +924,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
 
 
     // MARK: - Video Recording
+
+    @objc private func settingsButtonTapped() {
+        let settingsVC = SettingsViewController()
+        let navController = UINavigationController(rootViewController: settingsVC)
+        present(navController, animated: true, completion: nil)
+    }
+
     @IBAction private func toggleMovieRecording(_ recordButton: UIButton) {
 
         cameraButton.isEnabled = false
@@ -970,31 +1012,43 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             videoWriter?.finishWriting { [weak self] in
                 guard let self = self, let url = self.currentFileURL else { return }
 
-                // Save to camera roll
-                PHPhotoLibrary.requestAuthorization { status in
-                    if status == .authorized {
-                        PHPhotoLibrary.shared().performChanges({
-                            let options = PHAssetResourceCreationOptions()
-                            options.shouldMoveFile = true
-                            let creationRequest = PHAssetCreationRequest.forAsset()
-                            creationRequest.addResource(with: .video, fileURL: url, options: options)
-                        }) { success, error in
-                            if success {
-                                print("Video saved to camera roll")
-                            } else if let error = error {
-                                self.showErrorAndStopRecording("Error saving video: \(error). You can still check it in the Files app")
-                            }
-                            self.playSound(soundName: "stop")
-                            DispatchQueue.main.async {
-                                // Only enable the ability to change camera if the device has more than one camera.
-                                self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
-                                self.recordButton.isEnabled = true
-                                let iconSize = CGSize(width: 60, height: 60)
-                                let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
-                                self.recordButton.setImage(recordIcon, for: [])
-                            }
+                if UserSettings.saveToCameraRoll {
+                    // Save to camera roll
+                    PHPhotoLibrary.requestAuthorization { status in
+                        if status == .authorized {
+                            PHPhotoLibrary.shared().performChanges({
+                                let options = PHAssetResourceCreationOptions()
+                                options.shouldMoveFile = true
+                                let creationRequest = PHAssetCreationRequest.forAsset()
+                                creationRequest.addResource(with: .video, fileURL: url, options: options)
+                            }) { success, error in
+                                if success {
+                                    print("Video saved to camera roll")
+                                } else if let error = error {
+                                    self.showErrorAndStopRecording("Error saving video: \(error). You can still check it in the Files app")
+                                }
+                                self.playSound(soundName: "stop")
+                                DispatchQueue.main.async {
+                                    // Only enable the ability to change camera if the device has more than one camera.
+                                    self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+                                    self.recordButton.isEnabled = true
+                                    let iconSize = CGSize(width: 60, height: 60)
+                                    let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+                                    self.recordButton.setImage(recordIcon, for: [])
+                                }
 
+                            }
                         }
+                    }
+                } else {
+                    self.playSound(soundName: "stop")
+                    DispatchQueue.main.async {
+                        // Only enable the ability to change camera if the device has more than one camera.
+                        self.cameraButton.isEnabled = self.videoDeviceDiscoverySession.uniqueDevicePositionsCount > 1
+                        self.recordButton.isEnabled = true
+                        let iconSize = CGSize(width: 60, height: 60)
+                        let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
+                        self.recordButton.setImage(recordIcon, for: [])
                     }
                 }
                 applyDelayedOrientation()
