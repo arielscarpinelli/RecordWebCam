@@ -16,7 +16,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     
     private var connection: TCPConnection = .init()
     private var everRotated = false
-    
+    private static var appHasLaunched = true
+
     private var actionBar: UIStackView!
     private var actionBarTrailingConstraint: NSLayoutConstraint!
     private var actionBarLeadingConstraint: NSLayoutConstraint!
@@ -152,6 +153,16 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             settingsButtonTrailingConstraint // Active by default (for landscape left and portrait)
         ])
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        if CameraViewController.appHasLaunched {
+            CameraViewController.appHasLaunched = false
+            if #available(iOS 16.0, *) {
+                setNeedsUpdateOfSupportedInterfaceOrientations()
+            }
+        }
+    }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
@@ -225,6 +236,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        if UserSettings.forceLandscapeStart && CameraViewController.appHasLaunched {
+            return .landscape
+        }
+
         if #available(iOS 16.0, *) {
             return (everRotated || !UIDevice.current.orientation.isFlat) ? .all : .landscapeRight
         } else {

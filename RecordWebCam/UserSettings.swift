@@ -4,6 +4,7 @@ struct UserSettings {
 
     private enum Keys {
         static let saveToCameraRoll = "saveToCameraRoll"
+        static let forceLandscapeStart = "forceLandscapeStart"
     }
 
     static var saveToCameraRoll: Bool {
@@ -13,6 +14,15 @@ struct UserSettings {
         }
         set {
             UserDefaults.standard.set(newValue, forKey: Keys.saveToCameraRoll)
+        }
+    }
+
+    static var forceLandscapeStart: Bool {
+        get {
+            return UserDefaults.standard.bool(forKey: Keys.forceLandscapeStart)
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Keys.forceLandscapeStart)
         }
     }
 }
