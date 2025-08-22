@@ -1,0 +1,15 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:key="save_to_camera_roll"
+        app:title="Save to Camera Roll"
+        app:summary="If enabled, recorded videos will be saved to the public gallery."
+        app:defaultValue="true" />
+
+    <SwitchPreferenceCompat
+        app:key="force_landscape_start"
+        app:title="Force Landscape on Start"
+        app:summary="If enabled, the app will always start in landscape mode."
+        app:defaultValue="false" />
+
+</PreferenceScreen>
