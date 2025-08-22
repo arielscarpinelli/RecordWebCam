@@ -4,6 +4,9 @@ import Foundation // Needed for Data conversion and dispatchMain
 
 protocol ConnectionDelegate {
     func onDisconnect()
+    func onStartRecording()
+    func onStopRecording()
+    func setCodec(_ codec: CMVideoCodecType)
 }
 
 // --- Configuration ---
@@ -60,7 +63,7 @@ class TCPConnection {
     // Handle a new incoming connection
     private func handleNewConnection(_ connection: NWConnection) {
         print("New connection received...")
-        let serverConnection = ServerConnection(connection: connection, id: nextConnectionID)
+        let serverConnection = ServerConnection(connection: connection, id: nextConnectionID, delegate: delegate)
         connectionsByID[nextConnectionID] = serverConnection
         nextConnectionID += 1 // Increment ID for the next connection
 
@@ -167,12 +170,14 @@ class TCPConnection {
 class ServerConnection {
     let id: Int
     let connection: NWConnection
+    let delegate: ConnectionDelegate?
     var didStopCallback: ((Error?) -> Void)? = nil // Closure to call when stopped
     var sendVideo = false
 
-    init(connection: NWConnection, id: Int) {
+    init(connection: NWConnection, id: Int, delegate: ConnectionDelegate?) {
         self.connection = connection
         self.id = id
+        self.delegate = delegate
     }
 
     // Start handling the connection's events
@@ -215,8 +220,39 @@ class ServerConnection {
                 if let request = request {
                     print ("incoming: \(request)")
                     if request.contains("video") {
-                        sendVideo = true
+                        // TODO: support multiple resolutions
+                        var codec: CMVideoCodecType? = nil;
+                        if request.contains("/avc") {
+                            codec = kCMVideoCodecType_H264
+                        } else if request.contains("/hvec") {
+                            codec = kCMVideoCodecType_HEVC
+                        }
+                        
+                        if codec != nil {
+                            if (delegate != nil) {
+                                DispatchQueue.main.async {
+                                    self.delegate!.setCodec(codec!)
+                                }
+                            }
+                            sendVideo = true
+                        } else {
+                            print("Connection \(self.id): Unsupported requested codec")
+                            self.stop(error: nil) // Handle error
+                        }
                     } else if request.contains("HTTP/1.1\r\n\r\n") {
+                        
+                        if (delegate != nil) {
+                            if request.contains("start") {
+                                DispatchQueue.main.async {
+                                    self.delegate!.onStartRecording()
+                                }
+                            } else if request.contains("stop") {
+                                DispatchQueue.main.async {
+                                    self.delegate!.onStopRecording()
+                                }
+                            }
+                        }
+                        
                         send("200 OK\r\n\r\n".data(using: .ascii)!)
                     }
                 } else {

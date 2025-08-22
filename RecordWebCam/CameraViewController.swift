@@ -11,19 +11,21 @@ import Photos
 import VideoToolbox
 
 class CameraViewController: UIViewController, ConnectionDelegate {
-    
     private var spinner: UIActivityIndicatorView!
     
     private var connection: TCPConnection = .init()
     private var everRotated = false
     private static var appHasLaunched = true
-
+    
     @IBOutlet private var actionBarTrailingConstraint: NSLayoutConstraint!
     @IBOutlet private var actionBarLeadingConstraint: NSLayoutConstraint!
-
+    
     @IBOutlet private var headerBarLeadingConstraint: NSLayoutConstraint!
     @IBOutlet private var headerBarTrailingConstraint: NSLayoutConstraint!
-
+    
+    private var codec: CMVideoCodecType = kCMVideoCodecType_H264
+    private var isEncodingLandscape = false
+    
     // MARK: View Controller Life Cycle
     
     override func viewDidLoad() {
@@ -41,7 +43,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         let recordIcon = UIImage.recordIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
         recordButton.setImage(recordIcon, for: .normal)
         recordButton.layer.cornerRadius = 0
-
+        
         // Set up the video preview view.
         previewView.session = session
         
@@ -100,11 +102,11 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         } catch {
             self.showErrorAndStopRecording("unknown error initializing connection \(error)")
         }
-
+        
         updateLayout(for: UIDevice.current.orientation)
-
+        
     }
-
+    
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         if CameraViewController.appHasLaunched {
@@ -139,9 +141,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                     alertController.addAction(UIAlertAction(title: NSLocalizedString("Settings", comment: "Alert button to open Settings"),
                                                             style: .`default`,
                                                             handler: { _ in
-                                                                UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!,
-                                                                                          options: [:],
-                                                                                          completionHandler: nil)
+                        UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!,
+                                                  options: [:],
+                                                  completionHandler: nil)
                     }))
                     
                     self.present(alertController, animated: true, completion: nil)
@@ -176,9 +178,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         
         connection.close()
-
+        
         UIApplication.shared.isIdleTimerDisabled = false
-
+        
         super.viewWillDisappear(animated)
     }
     
@@ -190,7 +192,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         if UserSettings.forceLandscapeStart && CameraViewController.appHasLaunched {
             return .landscape
         }
-
+        
         if #available(iOS 16.0, *) {
             return (everRotated || !UIDevice.current.orientation.isFlat) ? .all : .landscapeRight
         } else {
@@ -213,11 +215,11 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         coordinator.animate(alongsideTransition: { _ in
             self.updateLayout(for: UIDevice.current.orientation)
         })
-
+        
         let deviceOrientation = UIDevice.current.orientation
         guard let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation),
               deviceOrientation.isPortrait || deviceOrientation.isLandscape else {
-                return
+            return
         }
         
         if let videoPreviewLayerConnection = previewView.videoPreviewLayer.connection {
@@ -225,7 +227,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         
         setVideoOrientation(newVideoOrientation)
-            
+        
     }
     
     private func updateLayout(for orientation: UIDeviceOrientation) {
@@ -234,7 +236,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         actionBarTrailingConstraint.isActive = orientation.isPortrait
         headerBarLeadingConstraint.isActive = orientation.isPortrait
         headerBarTrailingConstraint.isActive = orientation.isPortrait
-
+        
         // Action Bar
         if orientation.isLandscape {
             if orientation == .landscapeRight {
@@ -249,9 +251,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 headerBarTrailingConstraint.isActive = false
             }
         }
-
+        
     }
-
+    
     func setVideoOrientation(_ newVideoOrientation: AVCaptureVideoOrientation) {
         if let connection = videoOutput?.connection(with: .video) {
             if connection.videoOrientation.isLandscape != newVideoOrientation.isLandscape {
@@ -269,7 +271,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     func applyDelayedOrientation() {
         
         guard delayedOrientation, !isRecording, !connection.isSendingVideo,
-            let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) else {
+              let newVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) else {
             return
         }
         
@@ -281,13 +283,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             }
             connection.videoOrientation = newVideoOrientation
         }
-
+        
         delayedOrientation = false
         
-    }
-    
-    func onDisconnect() {
-        applyDelayedOrientation()
     }
     
     func updateIpAddressLabel() {
@@ -295,13 +293,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     }
     
     private var audioPlayer: AVAudioPlayer?
-
+    
     func playSound(soundName: String) {
         guard let asset = NSDataAsset(name: soundName) else {
             print("Could not find sound file: \(soundName)")
             return
         }
-
+        
         do {
             audioPlayer = try AVAudioPlayer(data: asset.data)
             audioPlayer?.prepareToPlay()
@@ -310,7 +308,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             print("Error loading or playing sound: \(error)")
         }
     }
-
+    
     // MARK: Session Management
     
     private enum SessionSetupResult {
@@ -361,18 +359,18 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             }
             return orientation
         }
-
+        
         if UserSettings.forceLandscapeStart && CameraViewController.appHasLaunched {
             deviceOrientation = .landscapeLeft
         }
-
+        
         let initialVideoOrientation: AVCaptureVideoOrientation = AVCaptureVideoOrientation(deviceOrientation: deviceOrientation) ?? .landscapeRight
-            // faceUp and down we consider landscape
-
+        // faceUp and down we consider landscape
+        
         // Add video input.
         do {
             let defaultVideoDevice: AVCaptureDevice? =
-                videoDeviceDiscoverySession.devices.first
+            videoDeviceDiscoverySession.devices.first
             
             guard let videoDevice = defaultVideoDevice else {
                 print("Default video device is unavailable.")
@@ -408,7 +406,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 return
             }
             resetZoom(videoDevice)
-
+            
         } catch {
             print("Couldn't create video device input: \(error)")
             setupResult = .configurationFailed
@@ -429,37 +427,37 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         } catch {
             print("Could not create audio device input: \(error)")
         }
-
+        
         // Output
         // let movieFileOutput = AVCaptureMovieFileOutput()
         
         let videoOutput = AVCaptureVideoDataOutput()
-
+        
         // videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32BGRA]
         videoOutput.videoSettings = [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange]
-//        videoOutput.alwaysDiscardsLateVideoFrames = true
+        //        videoOutput.alwaysDiscardsLateVideoFrames = true
         
         let videoQueue = DispatchQueue(label: "videoQueue")
         videoOutput.setSampleBufferDelegate(self, queue: videoQueue)
-
+        
         
         if self.session.canAddOutput(videoOutput) {
             self.session.beginConfiguration()
             self.session.addOutput(videoOutput)
-
+            
             self.session.commitConfiguration()
             
             self.videoOutput = videoOutput
             
             videoOutput.connection(with: .video)?.videoOrientation = initialVideoOrientation
-
+            
             setupVideoToolboxEncoder(isLandscape: initialVideoOrientation.isLandscape)
-
+            
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
             }
         }
-
+        
         session.commitConfiguration()
     }
     
@@ -493,16 +491,16 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     // MARK: Device Configuration
     
     @IBOutlet private weak var ipAddress: UILabel!
-
+    
     @IBOutlet private weak var cameraButton: UIButton!
-
+    
     @IBOutlet private weak var zoomButton: UIButton!
-
+    
     @IBOutlet private weak var cameraUnavailableLabel: UILabel!
     
     private let videoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera],
                                                                                mediaType: .video, position: .unspecified)
-
+    
     /// - Tag: ChangeCamera
     @IBAction private func changeCamera(_ cameraButton: UIButton) {
         cameraButton.isEnabled = false
@@ -510,7 +508,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         
         sessionQueue.async {
             let currentPosition = self.videoDeviceInput.device.position
-
+            
             let backVideoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTripleCamera, .builtInDualCamera, .builtInDualWideCamera, .builtInWideAngleCamera],
                                                                                    mediaType: .video, position: .back)
             let frontVideoDeviceDiscoverySession = AVCaptureDevice.DiscoverySession(deviceTypes: [.builtInTrueDepthCamera, .builtInWideAngleCamera],
@@ -590,7 +588,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             self.recordButton.isEnabled = self.videoOutput != nil
         }
     }
-
+    
     private func resetZoom(_ videoDevice: AVCaptureDevice) {
         do {
             try videoDevice.lockForConfiguration()
@@ -615,10 +613,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     @IBAction private func changeZoom(_ zoomButton: UIButton) {
         
         let currentZoom = CGFloat(Float(zoomButton.currentTitle?.dropLast() ?? "1.0") ?? 1.0)
-
+        
         sessionQueue.async {
             let device = self.videoDeviceInput.device
-
+            
             do {
                 try device.lockForConfiguration()
                 
@@ -626,7 +624,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 if #available(iOS 18.0, *) {
                     mult = device.displayVideoZoomFactorMultiplier
                 }
-
+                
                 var availableZooms = ([1] + device.virtualDeviceSwitchOverVideoZoomFactors)
                     .map { CGFloat($0.floatValue) * mult }
                 
@@ -638,7 +636,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 if availableZooms[availableZooms.endIndex-1] > 3 {
                     availableZooms.insert(2.0, at: availableZooms.endIndex-1)
                 }
-
+                
                 let newZoom = availableZooms
                     .filter { $0 > currentZoom }
                     .first ?? availableZooms.first!
@@ -692,7 +690,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             }
         }
     }
-
+    
     // MARK: Recording Movies
     
     private var backgroundRecordingID: UIBackgroundTaskIdentifier?
@@ -755,13 +753,13 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                                                selector: #selector(batteryStateDidChange),
                                                name: UIDevice.batteryStateDidChangeNotification,
                                                object: nil)
-
+        
         NotificationCenter.default.addObserver(
-                    self,
-                    selector: #selector(deviceOrientationDidChange(_:)),
-                    name: UIDevice.orientationDidChangeNotification,
-                    object: nil // Observe notifications from any object
-                )
+            self,
+            selector: #selector(deviceOrientationDidChange(_:)),
+            name: UIDevice.orientationDidChangeNotification,
+            object: nil // Observe notifications from any object
+        )
     }
     
     private func removeObservers() {
@@ -836,8 +834,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
          Also note that it's not always possible to resume, see `resumeInterruptedSession(_:)`.
          */
         if let userInfoValue = notification.userInfo?[AVCaptureSessionInterruptionReasonKey] as AnyObject?,
-            let reasonIntegerValue = userInfoValue.integerValue,
-            let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue) {
+           let reasonIntegerValue = userInfoValue.integerValue,
+           let reason = AVCaptureSession.InterruptionReason(rawValue: reasonIntegerValue) {
             print("Capture session was interrupted with reason \(reason)")
             
             var showResumeButton = false
@@ -872,7 +870,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         if !resumeButton.isHidden {
             UIView.animate(withDuration: 0.25,
                            animations: {
-                            self.resumeButton.alpha = 0
+                self.resumeButton.alpha = 0
             }, completion: { _ in
                 self.resumeButton.isHidden = true
             })
@@ -880,7 +878,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         if !cameraUnavailableLabel.isHidden {
             UIView.animate(withDuration: 0.25,
                            animations: {
-                            self.cameraUnavailableLabel.alpha = 0
+                self.cameraUnavailableLabel.alpha = 0
             }, completion: { _ in
                 self.cameraUnavailableLabel.isHidden = true
             }
@@ -890,12 +888,12 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     }
     
     // We cannot detect the USB being connected, but the battery state changes is a cue
-    @objc private func batteryStateDidChange(_ notification: Notification) {        
+    @objc private func batteryStateDidChange(_ notification: Notification) {
         DispatchQueue.main.asyncAfter(deadline: .now() + 15) {
             self.updateIpAddressLabel()
         }
     }
-
+    
     // MARK: - Properties
     private var isRecording: Bool = false
     private var videoOutput: AVCaptureVideoDataOutput?
@@ -904,26 +902,26 @@ class CameraViewController: UIViewController, ConnectionDelegate {
     private var recordingStartTime: CMTime?
     private var recordingStopTime: CMTime?
     private var currentFileURL: URL?
-
+    
     // VideoToolbox encoder
     private var compressionSession: VTCompressionSession?
     private var encodedDataCallback: VTCompressionOutputCallback?
-
-
-
+    
+    
+    
     // MARK: - Video Recording
-
+    
     @IBAction private func settingsButtonTapped() {
         let settingsVC = SettingsViewController()
         let navController = UINavigationController(rootViewController: settingsVC)
         present(navController, animated: true, completion: nil)
     }
-
+    
     @IBAction private func toggleMovieRecording(_ recordButton: UIButton) {
-
+        
         cameraButton.isEnabled = false
         recordButton.isEnabled = false
-
+        
         sessionQueue.async { [self] in
             
             if (isRecording) {
@@ -932,10 +930,10 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 startRecording()
             }
         }
-
+        
     }
     
-
+    
     private func startRecording() {
         // Create a unique file URL
         let documentsPath = NSSearchPathForDirectoriesInDomains(.documentDirectory, .userDomainMask, true)[0] // NSTemporaryDirectory()
@@ -944,14 +942,14 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         let dateString = dateFormatter.string(from: Date())
         let fileName = "video_\(dateString).mov"
         let url = URL(fileURLWithPath: documentsPath).appendingPathComponent(fileName)
-
+        
         currentFileURL = url
         
         do {
             // Create asset writer
             videoWriter = try AVAssetWriter(outputURL: url, fileType: .mov)
             videoWriter?.shouldOptimizeForNetworkUse = true
-
+            
             videoWriterInput = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
             videoWriterInput?.expectsMediaDataInRealTime = true
             
@@ -971,20 +969,20 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             isRecording = true
             
             playSound(soundName: "start")
-
+            
             DispatchQueue.main.async {
                 self.recordButton.isEnabled = true
                 let iconSize = CGSize(width: 60, height: 60)
                 let stopIcon = UIImage.stopIcon(size: iconSize).withRenderingMode(.alwaysOriginal)
                 self.recordButton.setImage(stopIcon, for: [])
             }
-
+            
         } catch {
             showErrorAndStopRecording("Failed to start recording: \(error)")
             self.recordButton.isEnabled = true
         }
     }
-
+    
     private func finalizeRecordingUI() {
         self.playSound(soundName: "stop")
         DispatchQueue.main.async {
@@ -996,7 +994,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             self.recordButton.setImage(recordIcon, for: [])
         }
     }
-
+    
     private func stopRecording() {
         
         isRecording = false
@@ -1011,7 +1009,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             videoWriterInput?.markAsFinished()
             videoWriter?.finishWriting { [weak self] in
                 guard let self = self, let url = self.currentFileURL else { return }
-
+                
                 if UserSettings.saveToCameraRoll {
                     PHPhotoLibrary.requestAuthorization { status in
                         if status == .authorized {
@@ -1041,9 +1039,9 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             videoWriter = nil
             videoWriterInput = nil
         }
-
+        
     }
-
+    
     // MARK: - VideoToolbox Encoder Setup
     private func setupVideoToolboxEncoder(isLandscape: Bool) {
         // Create compression session
@@ -1060,13 +1058,14 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         }
         
         // Create encoder session (4K resolution)
+        isEncodingLandscape = isLandscape
         let width = isLandscape ? 3840 : 2160
         let height = isLandscape ? 2160 : 3840
         let status = VTCompressionSessionCreate(
             allocator: kCFAllocatorDefault,
             width: Int32(width),
             height: Int32(height),
-            codecType: kCMVideoCodecType_H264,
+            codecType: codec,
             encoderSpecification: nil,
             imageBufferAttributes: nil,
             compressedDataAllocator: nil,
@@ -1083,7 +1082,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         compressionSession = session
         
         // Configure encoder properties
-        VTSessionSetProperty(compressionSession!, key: kVTCompressionPropertyKey_ProfileLevel, value: kVTProfileLevel_H264_High_AutoLevel)
+        VTSessionSetProperty(compressionSession!, key: kVTCompressionPropertyKey_ProfileLevel, value: codec == kCMVideoCodecType_H264 ? kVTProfileLevel_H264_High_AutoLevel : kVTProfileLevel_HEVC_Main_AutoLevel)
         VTSessionSetProperty(compressionSession!, key: kVTCompressionPropertyKey_RealTime, value: kCFBooleanTrue)
         VTSessionSetProperty(compressionSession!, key: kVTCompressionPropertyKey_AllowFrameReordering, value: kCFBooleanFalse)
         VTSessionSetProperty(compressionSession!, key: kVTCompressionPropertyKey_ExpectedFrameRate, value: NSNumber(value: 60))
@@ -1093,24 +1092,24 @@ class CameraViewController: UIViewController, ConnectionDelegate {
         // Prepare for encoding
         VTCompressionSessionPrepareToEncodeFrames(compressionSession!)
     }
-
+    
     private func teardownVideoToolboxEncoder() {
         if let session = compressionSession {
             VTCompressionSessionInvalidate(session)
             compressionSession = nil
         }
     }
-
+    
     private func handleEncodedFrame(sampleBuffer: CMSampleBuffer) {
         // Use the encoded frame for both recording and streaming
         connection.append(sampleBuffer)
-
+        
         if isRecording {
             appendSampleBufferToRecording(sampleBuffer)
         }
         
     }
-
+    
     private func appendSampleBufferToRecording(_ sampleBuffer: CMSampleBuffer) {
         guard isRecording, let writer = videoWriter, let input = videoWriterInput, writer.status == .writing else {
             if (videoWriter?.status == .failed) {
@@ -1124,12 +1123,12 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             recordingStartTime = timestamp
         }
         recordingStopTime = timestamp
-
+        
         if input.isReadyForMoreMediaData {
             let adjustedTime = CMTimeSubtract(timestamp, recordingStartTime ?? CMTime.zero)
-
+            
             var timingInfo = CMSampleTimingInfo(duration: sampleBuffer.duration, presentationTimeStamp: adjustedTime, decodeTimeStamp: .invalid)
-
+            
             var adjustedSampleBuffer: CMSampleBuffer?
             
             CMSampleBufferCreateCopyWithNewTiming(
@@ -1144,7 +1143,7 @@ class CameraViewController: UIViewController, ConnectionDelegate {
                 showErrorAndStopRecording("failed to adjust frame timing")
                 return
             }
-
+            
             // For H.264 encoded data, we can just append the sample buffer directly
             if !input.append(adjustedSampleBuffer!) {
                 print("error adding frame")
@@ -1153,14 +1152,8 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             print("skipping frame")
         }
     }
-
-    private func showErrorAndStopRecording(_ message:String) {
-        print(message)
-        
-        if (isRecording) {
-            stopRecording();
-        }
-
+    
+    private func showError(_ message: String) {
         DispatchQueue.main.async {
             
             let alert = UIAlertController(title: "Error", message: message, preferredStyle: UIAlertController.Style.alert)
@@ -1172,6 +1165,46 @@ class CameraViewController: UIViewController, ConnectionDelegate {
             self.present(alert, animated: true, completion: nil)
         }
     }
+    
+    private func showErrorAndStopRecording(_ message:String) {
+        print(message)
+        
+        if (isRecording) {
+            stopRecording();
+        }
+        
+        showError(message)
+    }
+    
+    // MARK: - Connection delegate
+    
+    func onDisconnect() {
+        applyDelayedOrientation()
+    }
+    
+    func onStartRecording() {
+        if(!isRecording) {
+            startRecording()
+        }
+    }
+    
+    func onStopRecording() {
+        if(isRecording) {
+            stopRecording()
+        }
+    }
+    
+    func setCodec(_ requestedCodec: CMVideoCodecType) {
+        if codec != requestedCodec {
+            if isRecording || self.connection.isSendingVideo {
+                showError("Cannot start broadcasting with different codec while recording")
+            } else {
+                codec = requestedCodec
+                setupVideoToolboxEncoder(isLandscape: isEncodingLandscape)
+            }
+        }
+    }
+    
 }
 
 // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
